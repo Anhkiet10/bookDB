@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BookDB — Đăng Nhập</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="background">
+      <div class="login-box">
+        <div class="logo-area">
+          <i class="fas fa-book-open logo-icon"></i>
+          <h2>BookDB</h2>
+          <p class="subtitle">Hệ thống quản lý sách</p>
+        </div>
+
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm">
+          <div class="input-group">
+            <input
+              type="text"
+              id="loginUsername"
+              placeholder="Tên đăng nhập"
+              required
+            />
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="input-group">
+            <input
+              type="password"
+              id="loginPassword"
+              placeholder="Mật khẩu"
+              required
+            />
+            <i class="fas fa-lock"></i>
+          </div>
+          <div class="options">
+            <label><input type="checkbox" /> Ghi nhớ</label>
+            <a href="#">Quên mật khẩu?</a>
+          </div>
+          <button type="submit" class="btn-login" id="loginBtn">
+            <span>Đăng Nhập</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+          <p class="register">
+            Chưa có tài khoản? <a href="#" id="showRegister">Đăng ký</a>
+          </p>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form id="registerForm" class="hidden">
+          <div class="input-group">
+            <input
+              type="text"
+              id="regUsername"
+              placeholder="Tên đăng nhập"
+              required
+            />
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="input-group">
+            <input type="email" id="regEmail" placeholder="Email" required />
+            <i class="fas fa-envelope"></i>
+          </div>
+          <div class="input-group">
+            <input
+              type="password"
+              id="regPassword"
+              placeholder="Mật khẩu"
+              required
+            />
+            <i class="fas fa-lock"></i>
+          </div>
+          <button type="submit" class="btn-login">
+            <span>Tạo Tài Khoản</span>
+            <i class="fas fa-user-plus"></i>
+          </button>
+          <p class="register">
+            Đã có tài khoản? <a href="#" id="showLogin">Đăng nhập</a>
+          </p>
+        </form>
+      </div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
