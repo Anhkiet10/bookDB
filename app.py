@@ -1,85 +1,103 @@
-
-
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request , send_from_directory
 from flask_cors import CORS
 import pyodbc
 from werkzeug.security import generate_password_hash, check_password_hash
-app = Flask(__name__)
-CORS(app)
-
-# @app.route("/")
-# def test_db():
-#     try:#dùng để thử kết nối đến SQL Server và thực hiện các thao tác liên quan đến cơ sở dữ liệu. Nếu có lỗi xảy ra trong quá trình kết nối hoặc thao tác, nó sẽ được bắt và xử lý trong phần except.
-#         conn = pyodbc.connect(
-#             "DRIVER={ODBC Driver 17 for SQL Server};"
-#             "SERVER=127.0.0.1,1433;"
-#             "DATABASE=BookDB;"
-#             "UID=sa;"
-#             "PWD=Aa123456@;"
-#             "TrustServerCertificate=yes;"
-#         )
-
-    #     return "✅ Connected to SQL Server successfully!"
-
-    # except Exception as e: #dùng để bắt tất cả các loại lỗi có thể xảy ra khi kết nối đến SQL Server, kết hợp với try
-    #     return f"❌ Database connection failed: {str(e)}"
+# app = Flask(__name__)
+# Sửa dòng này
+app = Flask(__name__, static_folder='static')
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 
-# if __name__ == "__main__":
-#     app.run(debug=True)
-
-    # app.py
-
-# ==== KẾT NỐI SQL SERVER ====
 conn_str = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
             "SERVER=127.0.0.1,1433;"
             "DATABASE=BookDB;"
             "UID=sa;"
-            "PWD=Aa123456@;"
+            "PWD=123456;"
             "TrustServerCertificate=yes;"
         )
 
 def get_db():
     return pyodbc.connect(conn_str)
+## đăng nhập
+@app.route('/api/login',methods = ['POST'])
+def login():
+    data=request.json # ấy dữ liệu mà người dùng gửi từ giao diện (Frontend) lên. như email , password
+    conn=get_db() #Thiết lập một "đường dây kết nối" tới cơ sở dữ liệu.
+    cursor=conn.cursor() #Tạo ra một "con trỏ" (Cursor) để làm việc với dữ liệu.
+    #cursor (con trỏ) chính là người thủ thư (hoặc một cánh tay robot) đứng đợi lệnh của bạn.
+    cursor.execute(
+        "SELECT password_hash,role FROM Users Where email=?",
+        data['email']
+    )
+    row=cursor.fetchone() # vì là tài khoản chỉ có 1 dòng nên dùng fetchone lấy theo mảng với lần lượt row[0],row[1] là SELECT password_hash,role FROM Users
+    conn.close()
+    if row and check_password_hash( # kiểm tra nếu row có tài khoản thì sẽ kiểm tra thêm password
+        row[0],data['password']): #Là mật mã đã bị mã hóa (hashed) lấy từ Database. Nó trông giống như một chuỗi ký tự rác: pbkdf2:sha256:260000$abc123.... và lấy password phần thô để thực hiện mã hóa trong thư viện để so sánh
+        return jsonify({"message" : "đăng nhập thành công","role" : row[1]}) #jsonify: Biến Dictionary của Python thành chuỗi JSON để trình duyệt (JavaScript) có thể đọc được.
+    return jsonify({"error": "sai tài khoản hoặc mật khẩu"}),401
 
-
-# ==== BOOKS API ====
-
-@app.route('/api/books', methods=['GET'])
-def get_books():
-    conn = get_db()
+#đăng ký
+@app.route('/api/register',methods = ['POST'])
+def register():
+    data=request.json
+    hashed=generate_password_hash(data['password'])
+    conn=get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT b.id, b.title, b.author_id, b.category_id,
-               a.full_name AS author, c.name AS category,
-               b.published_year, b.description
-        FROM Books b
-        JOIN Authors    a ON b.author_id   = a.id
-        JOIN Categories c ON b.category_id = c.id
-    """)
-    books = [
+    try:
+        # cursor.execute( #đây là lệnh tạo admin 
+        #     "INSERT INTO Users (username, email, password_hash,role) VALUES (?, ?, ?,?)",
+        #     data['username'], data['email'], hashed,"admin"
+        # )
+        cursor.execute(
+            "INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)",
+            data['username'], data['email'], hashed,
+        )
+        conn.commit()
+        return jsonify({"message": "Đăng ký thành công"}), 201
+    except Exception as e:
+        return jsonify({"error": "Tên đăng nhập hoặc email đã tồn tại"}), 400
+    finally:
+        conn.close()
+
+# trang danh sách books
+@app.route('/api/books',methods = ['GET'])
+def get_books():
+    conn=get_db()
+    cursor = conn.cursor()
+    cursor.execute("""select id,title
+      ,author
+      ,category
+      ,published_year
+      ,description
+      ,quantity
+    ,category_id
+      ,author_id
+                    FROM vw_books""") # # biến cursor thực hiện hàm execute để truy vấn select ...
+    books = [ # tạo mảng books để khi for i in cursor.fetchall() để lấy dữ liệu r cho vào mảng books -  for r in cursor.fetchall() thực hiện trước
         {
-            "id": r[0], "title": r[1], "author_id": r[2], "category_id": r[3],
-            "author": r[4], "category": r[5],
-            "published_year": r[6], "description": r[7]
+            "id": r[0], "title": r[1], 
+            "author": r[2], "category": r[3],
+            "published_year": r[4], "description": r[5],"quantity" : r[6],"category_id" : r[7],"author_id" : r[8]
         }
-        for r in cursor.fetchall()
+        for r in cursor.fetchall() #là method của cursor object trong thư viện pyodbc,Lấy toàn bộ dữ liệu còn lại từ kết quả query
+        #r cx ko cần khai báo trước, chỉ cần for và cursor.fetchall()
     ]
     conn.close()
     return jsonify(books)
 
-
-@app.route('/api/books/<int:book_id>', methods=['GET'])
+@app.route('/api/books/<int:book_id>', methods=['GET'])#dùng để gọi hàm với id để chỉnh sửa sách trong quyền admin
 def get_book(book_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT b.id, b.title, b.author_id, b.category_id,
-               a.full_name, c.name, b.published_year, b.description
-        FROM Books b
-        JOIN Authors    a ON b.author_id   = a.id
-        JOIN Categories c ON b.category_id = c.id
+        select b.id,title
+      ,author_id
+      ,category_id
+      ,published_year
+      ,description
+      ,quantity
+        FROM vw_books b
         WHERE b.id = ?
     """, book_id)
     r = cursor.fetchone()
@@ -88,41 +106,62 @@ def get_book(book_id):
         return jsonify({"error": "Không tìm thấy sách"}), 404
     return jsonify({
         "id": r[0], "title": r[1], "author_id": r[2], "category_id": r[3],
-        "author": r[4], "category": r[5],
-        "published_year": r[6], "description": r[7]
+        "published_year": r[4], "description": r[5],"quantity" : r[6]
     })
 
 
-@app.route('/api/books', methods=['POST'])
+@app.route('/api/books', methods=['POST'])#taoh mới dùng cho insert
 def add_book():
     data = request.json
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO Books (title, author_id, category_id, published_year, description)
-        VALUES (?, ?, ?, ?, ?)
-    """, data['title'], data['author_id'], data['category_id'],
-         data.get('published_year'), data.get('description'))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Thêm sách thành công"}), 201
+    try:
+        # Chèn trực tiếp vào bảng Books
+        cursor.execute("""
+            EXEC INSERTBOOOKS @title=? , @author_id =?, @category_id=? , 
+            @published_year =?, @description=? , @quantity=?
+        """, 
+        data['title'], 
+        data['author_id'], 
+        data['category_id'],
+        data.get('published_year'), 
+        data.get('description'), 
+        data.get('quantity', 0) # Lấy quantity, nếu không có thì mặc định là 0
+        )
+        conn.commit()
+        return jsonify({"message": "Thêm sách thành công"}), 201
+    except Exception as e:
+        print(f"Lỗi: {e}") # In ra màn hình console để bạn dễ kiểm tra
+        return jsonify({"error": "Không thể thêm sách"}), 500
+    finally:
+        conn.close()
 
 
-@app.route('/api/books/<int:book_id>', methods=['PUT'])
+@app.route('/api/books/<int:book_id>', methods=['PUT'])#ghi đè lên khi sửa dùng để update
 def update_book(book_id):
     data = request.json
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE Books
-        SET title=?, author_id=?, category_id=?, published_year=?, description=?
-        WHERE id=?
-    """, data['title'], data['author_id'], data['category_id'],
-         data.get('published_year'), data.get('description'), book_id)
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Cập nhật sách thành công"})
-
+    try:
+        cursor.execute("""
+            EXEC upbooks @id=?,@title=? , @author_id =?, @category_id=? , 
+            @published_year =?, @description=? , @quantity=?
+        """, 
+        book_id,
+        data['title'], 
+        data['author_id'], 
+        data['category_id'],
+        data.get('published_year'), 
+        data.get('description'), 
+        data.get('quantity', 0), 
+        )
+        
+        conn.commit()
+        return jsonify({"message": "Cập nhật sách thành công"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/api/books/<int:book_id>', methods=['DELETE'])
 def delete_book(book_id):
@@ -142,7 +181,7 @@ def delete_book(book_id):
 def get_authors():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, full_name, bio, CAST(birthdate AS VARCHAR) FROM Authors")
+    cursor.execute("SELECT *  FROM vw_authors")
     authors = [
         {"id": r[0], "full_name": r[1], "bio": r[2], "birthdate": r[3]}
         for r in cursor.fetchall()
@@ -151,13 +190,13 @@ def get_authors():
     return jsonify(authors)
 
 
-@app.route('/api/authors', methods=['POST'])
+@app.route('/api/authors', methods=['POST'])# insert dựa vào view
 def add_author():
     data = request.json
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO Authors (full_name, bio, birthdate) VALUES (?, ?, ?)",
+        "EXEC insertauthors @full_name=? , @bio=? , @birthdate=?",
         data['full_name'], data.get('bio'), data.get('birthdate')
     )
     conn.commit()
@@ -165,14 +204,14 @@ def add_author():
     return jsonify({"message": "Thêm tác giả thành công"}), 201
 
 
-@app.route('/api/authors/<int:author_id>', methods=['PUT'])
+@app.route('/api/authors/<int:author_id>', methods=['PUT'])#ghi đè lên
 def update_author(author_id):
     data = request.json
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE Authors SET full_name=?, bio=?, birthdate=? WHERE id=?",
-        data['full_name'], data.get('bio'), data.get('birthdate'), author_id
+        "EXEC upauthors @id=?,@full_name=?, @bio=?, @birthdate=?",
+        author_id,data['full_name'], data.get('bio'), data.get('birthdate') 
     )
     conn.commit()
     conn.close()
@@ -197,7 +236,7 @@ def delete_author(author_id):
 def get_categories():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, description FROM Categories")
+    cursor.execute("SELECT * FROM vw_categories")
     cats = [
         {"id": r[0], "name": r[1], "description": r[2]}
         for r in cursor.fetchall()
@@ -212,7 +251,7 @@ def add_category():
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO Categories (name, description) VALUES (?, ?)",
+        "EXEC insercategories @name =?, @description =?",
         data['name'], data.get('description')
     )
     conn.commit()
@@ -226,8 +265,8 @@ def update_category(cat_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE Categories SET name=?, description=? WHERE id=?",
-        data['name'], data.get('description'), cat_id
+        "EXEC upcategories @id=?,@name =?, @description=?",
+        cat_id,data['name'], data.get('description') 
     )
     conn.commit()
     conn.close()
@@ -244,44 +283,13 @@ def delete_category(cat_id):
     return jsonify({"message": "Xóa thể loại thành công"})
 
 
-# ============================================================
-#  USERS (Auth)
-# ============================================================
-
-@app.route('/api/register', methods=['POST'])
-def register():
-    data = request.json
-    hashed = generate_password_hash(data['password'])
-    conn = get_db()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)",
-            data['username'], data['email'], hashed
-        )
-        conn.commit()
-        return jsonify({"message": "Đăng ký thành công"}), 201
-    except Exception as e:
-        return jsonify({"error": "Tên đăng nhập hoặc email đã tồn tại"}), 400
-    finally:
-        conn.close()
-
-
-@app.route('/api/login', methods=['POST'])
-def login():
-    data = request.json
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT password_hash, role FROM Users WHERE username=?",
-        data['username']
-    )
-    row = cursor.fetchone()
-    conn.close()
-    if row and check_password_hash(row[0], data['password']):
-        return jsonify({"message": "Đăng nhập thành công", "role": row[1]})
-    return jsonify({"error": "Sai tài khoản hoặc mật khẩu"}), 401
-
-
+#
+@app.route('/pdf/<path:filename>')
+def serve_pdf(filename):
+    response = send_from_directory('static/contents', filename)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET'
+    return response
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
