@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BookDB — Quản Lý Sách</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="dashboard-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="fas fa-book-open"></i>
+        <span>BookDB</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-tab="books">
+          <i class="fas fa-book"></i> Sách
+        </a>
+        <a href="#" class="nav-item" data-tab="authors">
+          <i class="fas fa-feather-alt"></i> Tác giả
+        </a>
+        <a href="#" class="nav-item" data-tab="categories">
+          <i class="fas fa-tags"></i> Thể loại
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <i class="fas fa-circle-user"></i>
+          <span id="sidebarUsername">Người dùng</span>
+          <span id="sidebarRole" class="role-badge">user</span>
+        </div>
+        <button class="btn-logout" id="logoutBtn">
+          <i class="fas fa-right-from-bracket"></i> Đăng xuất
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- TOAST -->
+      <div id="toast" class="toast hidden"></div>
+
+      <!-- ===== TAB: BOOKS ===== -->
+      <section id="tab-books" class="tab-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">
+              <i class="fas fa-book"></i> Danh Sách Sách
+            </h1>
+            <p class="section-sub">Quản lý toàn bộ kho sách</p>
+          </div>
+          <div class="header-actions">
+            <div class="search-wrap">
+              <i class="fas fa-search search-icon"></i>
+              <input
+                type="text"
+                id="searchBooks"
+                placeholder="Tìm kiếm sách..."
+              />
+            </div>
+            <button class="btn btn-gold" id="btnAddBook">
+              <i class="fas fa-plus"></i> Thêm Sách
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-book"></i></div>
+            <div>
+              <div class="stat-num" id="statBooks">0</div>
+              <div class="stat-label">Tổng sách</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-feather-alt"></i></div>
+            <div>
+              <div class="stat-num" id="statAuthors">0</div>
+              <div class="stat-label">Tác giả</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-tags"></i></div>
+            <div>
+              <div class="stat-num" id="statCategories">0</div>
+              <div class="stat-label">Thể loại</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table" id="booksTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên sách</th>
+                <th>Tác giả</th>
+                <th>Thể loại</th>
+                <th>Năm XB</th>
+                <th>Số lượng</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="booksBody">
+              <tr>
+                <td colspan="7" class="loading-row">
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== TAB: AUTHORS ===== -->
+      <section id="tab-authors" class="tab-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">
+              <i class="fas fa-feather-alt"></i> Tác Giả
+            </h1>
+            <p class="section-sub">Danh sách tác giả trong hệ thống</p>
+          </div>
+          <button class="btn btn-gold" id="btnAddAuthor">
+            <i class="fas fa-plus"></i> Thêm Tác Giả
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên tác giả</th>
+                <th>Tiểu sử</th>
+                <th>Ngày sinh</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="authorsBody">
+              <tr>
+                <td colspan="5" class="loading-row">
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== TAB: CATEGORIES ===== -->
+      <section id="tab-categories" class="tab-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title"><i class="fas fa-tags"></i> Thể Loại</h1>
+            <p class="section-sub">Phân loại sách trong hệ thống</p>
+          </div>
+          <button class="btn btn-gold" id="btnAddCategory">
+            <i class="fas fa-plus"></i> Thêm Thể Loại
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên thể loại</th>
+                <th>Mô tả</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="categoriesBody">
+              <tr>
+                <td colspan="4" class="loading-row">
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- ===== MODAL: BOOK ===== -->
+    <div id="modalBook" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modalBookTitle">Thêm Sách</h3>
+          <button class="modal-close" data-close="modalBook">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <form id="bookForm" class="modal-form">
+          <input type="hidden" id="bookId" />
+          <div class="form-group">
+            <label>Tên sách *</label>
+            <input
+              type="text"
+              id="bookTitle"
+              placeholder="Nhập tên sách"
+              required
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tác giả *</label>
+              <select id="bookAuthor" required>
+                <option value="">-- Chọn tác giả --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Thể loại *</label>
+              <select id="bookCategory" required>
+                <option value="">-- Chọn thể loại --</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Năm xuất bản</label>
+            <input
+              type="number"
+              id="bookYear"
+              placeholder="VD: 2024"
+              min="1000"
+              max="2099"
+            />
+          </div>
+          <div class="form-group">
+            <label>Mô tả</label>
+            <textarea
+              id="bookDesc"
+              placeholder="Nhập mô tả sách..."
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label>Số lượng</label>
+            <input
+              type="number"
+              id="bookquantity"
+              placeholder="Nhập số lượng sách..."
+              min="0"
+            />
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              data-close="modalBook"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-gold" id="bookSubmitBtn">
+              Lưu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: AUTHOR ===== -->
+    <div id="modalAuthor" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modalAuthorTitle">Thêm Tác Giả</h3>
+          <button class="modal-close" data-close="modalAuthor">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <form id="authorForm" class="modal-form">
+          <input type="hidden" id="authorId" />
+          <div class="form-group">
+            <label>Tên tác giả *</label>
+            <input
+              type="text"
+              id="authorName"
+              placeholder="Nhập tên tác giả"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Ngày sinh</label>
+            <input type="date" id="authorBirth" />
+          </div>
+          <div class="form-group">
+            <label>Tiểu sử</label>
+            <textarea
+              id="authorBio"
+              placeholder="Giới thiệu về tác giả..."
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              data-close="modalAuthor"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-gold">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: CATEGORY ===== -->
+    <div id="modalCategory" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modalCategoryTitle">Thêm Thể Loại</h3>
+          <button class="modal-close" data-close="modalCategory">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <form id="categoryForm" class="modal-form">
+          <input type="hidden" id="categoryId" />
+          <div class="form-group">
+            <label>Tên thể loại *</label>
+            <input
+              type="text"
+              id="categoryName"
+              placeholder="VD: Văn học"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Mô tả</label>
+            <textarea
+              id="categoryDesc"
+              placeholder="Mô tả thể loại..."
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              data-close="modalCategory"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="btn btn-gold">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CONFIRM DELETE MODAL -->
+    <div id="modalConfirm" class="modal-overlay hidden">
+      <div class="modal-box modal-sm">
+        <div class="modal-header">
+          <h3>Xác nhận xóa</h3>
+          <button class="modal-close" data-close="modalConfirm">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <div class="confirm-body">
+          <i class="fas fa-triangle-exclamation confirm-icon"></i>
+          <p id="confirmMsg">Bạn có chắc muốn xóa mục này?</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" data-close="modalConfirm">Hủy</button>
+          <button class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
