@@ -101,12 +101,13 @@
                 <th>Tác giả</th>
                 <th>Thể loại</th>
                 <th>Năm XB</th>
+                <th>Số lượng</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody id="booksBody">
               <tr>
-                <td colspan="6" class="loading-row">
+                <td colspan="7" class="loading-row">
                   <i class="fas fa-spinner fa-spin"></i> Đang tải...
                 </td>
               </tr>
@@ -235,6 +236,15 @@
               rows="3"
             ></textarea>
           </div>
+          <div class="form-group">
+            <label>Số lượng</label>
+            <input
+              type="number"
+              id="bookquantity"
+              placeholder="Nhập số lượng sách..."
+              min="0"
+            />
+          </div>
           <div class="modal-actions">
             <button
               type="button"
@@ -359,6 +369,6 @@
       </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="main.js"></script>
   </body>
 </html>

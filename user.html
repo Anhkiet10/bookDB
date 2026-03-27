@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BookDB — Kho Sách</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      /* ===== BOOKS PAGE SPECIFIC ===== */
+      .books-hero {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f3460 100%
+        );
+        padding: 2.5rem 2rem 2rem;
+        border-bottom: 2px solid var(--gold);
+        position: relative;
+        overflow: hidden;
+      }
+      .books-hero::before {
+        z-index: 0;
+        content: "";
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(212, 175, 55, 0.15) 0%,
+          transparent 70%
+        );
+      }
+      .hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .hero-brand i {
+        color: var(--gold);
+        font-size: 1.6rem;
+      }
+      .hero-brand h1 {
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      .hero-brand span {
+        color: var(--gold);
+      }
+
+      .hero-user {
+        z-index: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .hero-user-info {
+        text-align: right;
+      }
+      .hero-user-info .name {
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .hero-user-info .role {
+        color: var(--gold);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .btn-logout-hero {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .btn-logout-hero:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Search + Filter Bar */
+      .search-filter-bar {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .search-wrap-hero {
+        flex: 1;
+        min-width: 220px;
+        position: relative;
+      }
+      .search-wrap-hero i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .search-wrap-hero input {
+        width: 100%;
+        padding: 0.7rem 1rem 0.7rem 2.8rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.95rem;
+        outline: none;
+        transition: all 0.2s;
+        box-sizing: border-box;
+      }
+      .search-wrap-hero input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .search-wrap-hero input:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: var(--gold);
+      }
+      .category-filter {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .filter-label {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+      }
+      .cat-btn {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        font-size: 0.82rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .cat-btn:hover,
+      .cat-btn.active {
+        background: var(--gold);
+        border-color: var(--gold);
+        color: #1a1a2e;
+        font-weight: 600;
+      }
+
+      /* Stats Strip */
+      .stats-strip {
+        display: flex;
+        gap: 1.5rem;
+        padding: 1rem 2rem;
+        background: rgba(26, 26, 46, 0.6);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+      }
+      .strip-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.88rem;
+      }
+      .strip-stat i {
+        color: var(--gold);
+      }
+      .strip-stat strong {
+        color: #fff;
+      }
+
+      /* Books Grid */
+      .books-container {
+        padding: 2rem;
+        background: #f8f7f4;
+        min-height: calc(100vh - 200px);
+      }
+      .books-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.5rem;
+      }
+      .book-card {
+        background: #fff;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.25s ease;
+        cursor: pointer;
+        border: 1px solid #eee;
+        position: relative;
+      }
+      .book-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        border-color: var(--gold);
+      }
+      .book-cover {
+        height: 160px;
+        background: linear-gradient(135deg, #1a1a2e, #0f3460);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .book-cover::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
+      }
+      .book-cover i {
+        font-size: 3.5rem;
+        color: rgba(212, 175, 55, 0.6);
+      }
+      .book-cover-num {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        background: rgba(212, 175, 55, 0.9);
+        color: #1a1a2e;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+      }
+      .book-info {
+        padding: 1rem;
+      }
+      .book-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 0.3rem;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .book-author {
+        font-size: 0.82rem;
+        color: #888;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .book-author i {
+        color: var(--gold);
+        font-size: 0.75rem;
+      }
+      .book-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.5rem;
+      }
+      .book-category {
+        font-size: 0.75rem;
+        background: #f0eee8;
+        color: #666;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+      }
+      .book-year {
+        font-size: 0.78rem;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .book-year i {
+        font-size: 0.7rem;
+      }
+
+      /* Empty & Loading States */
+      .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #aaa;
+      }
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #ddd;
+      }
+      .empty-state p {
+        font-size: 1rem;
+      }
+
+      /* ===== MODAL DETAIL ===== */
+      .detail-modal .modal-box {
+        max-width: 580px;
+      }
+      .modal-box_u {
+        background: #6b6b6d !important; /* Hoặc màu nền của bạn */
+        border-radius: 12px;
+        width: 100%; /* Ưu tiên chiếm hết chiều ngang có thể */
+        max-width: 600px; /* Giới hạn độ rộng tối đa trên máy tính */
+        max-height: 90vh; /* Không cao quá 90% màn hình */
+        overflow-y: auto; /* Tự xuất hiện thanh cuộn nếu nội dung quá dài */
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      .detail-cover {
+        height: 140px;
+        background: linear-gradient(135deg, #1a1a2e, #0f3460);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px 12px 0 0;
+        margin: -1.5rem -1.5rem 1.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .detail-cover i {
+        font-size: 4rem;
+        color: rgba(212, 175, 55, 0.5);
+      }
+      .detail-cover-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem 1.5rem;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+      }
+      .detail-cover-overlay h2 {
+        color: #fff;
+        font-size: 1.2rem;
+        margin: 0;
+        font-weight: 700;
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .detail-item label {
+        display: block;
+        font-size: 0.75rem;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+      }
+      .detail-item span {
+        font-size: 0.95rem;
+        color: #1a1a2e;
+        font-weight: 600;
+      }
+      .detail-desc {
+        background: #f8f7f4;
+        border-radius: 8px;
+        padding: 1rem;
+        font-size: 0.9rem;
+        color: #3f3c3c;
+        line-height: 1.6;
+        border-left: 3px solid var(--gold);
+      }
+      .detail-desc-label {
+        font-size: 0.75rem;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Responsive */
+      @media (max-width: 600px) {
+        .hero-top {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .books-container {
+          padding: 1rem;
+        }
+        .stats-strip {
+          padding: 0.75rem 1rem;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body
+    style="
+      margin: 0;
+      background: #f8f7f4;
+      font-family: &quot;Segoe UI&quot;, sans-serif;
+    "
+  >
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- HERO HEADER -->
+    <header class="books-hero">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <i class="fas fa-book-open"></i>
+          <h1>Book<span>DB</span></h1>
+          <span style="color: rgba(255, 255, 255, 0.3); margin: 0 0.25rem"
+            >—</span
+          >
+          <span style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem"
+            >Kho Sách</span
+          >
+        </div>
+        <div class="hero-user">
+          <div class="hero-user-info">
+            <div class="name" id="heroUsername">Người dùng</div>
+            <div class="role">user</div>
+          </div>
+          <button class="btn-logout-hero" id="logoutBtn">
+            <i class="fas fa-right-from-bracket"></i> Đăng xuất
+          </button>
+        </div>
+      </div>
+
+      <!-- Search + Category Filter -->
+      <div class="search-filter-bar">
+        <div class="search-wrap-hero">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            id="searchBooks"
+            placeholder="Tìm kiếm theo tên sách, tác giả..."
+          />
+        </div>
+      </div>
+      <div style="margin-top: 0.75rem" class="category-filter">
+        <span class="filter-label"><i class="fas fa-filter"></i> Lọc:</span>
+        <button class="cat-btn active" data-cat="all">Tất cả</button>
+        <div id="catBtns"></div>
+      </div>
+    </header>
+
+    <!-- STATS STRIP -->
+    <div class="stats-strip">
+      <div class="strip-stat">
+        <i class="fas fa-book"></i>
+        <span><strong id="statTotal">0</strong> đầu sách</span>
+      </div>
+      <div class="strip-stat">
+        <i class="fas fa-feather-alt"></i>
+        <span><strong id="statAuthors">0</strong> tác giả</span>
+      </div>
+      <div class="strip-stat">
+        <i class="fas fa-tags"></i>
+        <span><strong id="statCats">0</strong> thể loại</span>
+      </div>
+      <div class="strip-stat" id="filterStatus" style="display: none">
+        <i class="fas fa-filter"></i>
+        <span id="filterStatusText"></span>
+      </div>
+    </div>
+
+    <!-- BOOKS GRID -->
+    <div class="books-container">
+      <div class="books-grid" id="booksGrid">
+        <div class="empty-state">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Đang tải danh sách sách...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CHI TIẾT SÁCH -->
+    <div id="modalDetail" class="modal-overlay hidden detail-modal">
+      <div class="modal-box_u" style="padding: 1.5rem">
+        <button
+          class="modal-close"
+          data-close="modalDetail"
+          style="position: absolute; top: 1rem; right: 1rem"
+        >
+          <i class="fas fa-xmark"></i>
+        </button>
+        <div class="detail-cover" id="detailCover">
+          <i class="fas fa-book-open"></i>
+          <div class="detail-cover-overlay">
+            <h2 id="detailTitle">Tên sách</h2>
+          </div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label><i class="fas fa-feather-alt"></i> Tác giả</label>
+            <span id="detailAuthor">—</span>
+          </div>
+          <div class="detail-item">
+            <label><i class="fas fa-tags"></i> Thể loại</label>
+            <span id="detailCategory">—</span>
+          </div>
+          <div class="detail-item">
+            <label><i class="fas fa-calendar"></i> Năm xuất bản</label>
+            <span id="detailYear">—</span>
+          </div>
+          <div class="detail-item">
+            <label><i class="fas fa-cubes"></i> Số lượng</label>
+            <span id="detailQty">—</span>
+          </div>
+        </div>
+        <div id="detailDescWrap" style="display: none">
+          <div class="detail-desc-label">
+            <i class="fas fa-align-left"></i> Mô tả
+          </div>
+          <div class="detail-desc" id="detailDesc"></div>
+        </div>
+        <div style="margin-top: 1.5rem; text-align: right">
+          <button class="btn btn-borrow" id="btnborrow">mượn ngay</button>
+          <button class="btn btn-read" id="btnReadNow">đọc ngay</button>
+          <button class="btn btn-outline" data-close="modalDetail">Đóng</button>
+        </div>
+      </div>
+    </div>
+    <!-- tạo bảng hiện thông tin khi ấn vào mượn sách-->
+    <!-- Thay thế div link_borrow cũ bằng: -->
+    <div id="link_borrow" class="modal-overlay hidden">
+      <div class="modal-box_u" style="padding: 1.5rem; max-width: 400px">
+        <button
+          class="modal-close"
+          data-close="link_borrow"
+          style="position: absolute; top: 1rem; right: 1rem"
+        >
+          <i class="fas fa-xmark"></i>
+        </button>
+        <h3 style="color: #fff; margin-bottom: 1rem">
+          <i class="fas fa-phone" style="color: var(--gold)"></i> Thông tin mượn
+          sách
+        </h3>
+        <p style="color: #ccc; margin-bottom: 0.5rem">
+          Liên hệ thủ thư để mượn sách:
+        </p>
+        <a
+          href="tel:123465"
+          style="color: var(--gold); font-size: 1.2rem; font-weight: bold"
+        >
+          <i class="fas fa-phone"></i> 123-465
+        </a>
+        <p style="color: #fff; margin-top: 1rem; font-weight: 600">
+          Hoàng Anh Kiệt <br />
+          văn trọng
+        </p>
+        <p style="color: #aaa">Người phụ trách: Người thứ 2</p>
+      </div>
+    </div>
+    <script src="user.js"></script>
+  </body>
+</html>

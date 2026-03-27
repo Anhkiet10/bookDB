@@ -11,8 +11,9 @@
   width: 100%;
   height: 100vh;
   /* Thay đường dẫn ảnh của bạn vào đây */
-  background: url(/anh/photo-1475274047050-1d0c0975c63e.avif)
-    no-repeat center center/cover;
+  background: url(/anh/photo-1475274047050-1d0c0975c63e.avif);
+  /* background:no-repeat;  no-repeat center center/cover */
+  background-size: cover; /* đảm bảo ảnh phủ toàn bộ phần tử mà không bị biến dạng */
   display: flex;
   justify-content: center; /* Căn giữa theo chiều ngang */
   align-items: center; /* Căn giữa theo chiều dọc */
@@ -26,7 +27,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2); /* Viền mờ tạo cảm giác khối kính */
   /* ĐÂY LÀ CHÌA KHÓA: Hiệu ứng mờ nền */
   /* backdrop-filter: blur(10px); */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 800px rgba(231, 15, 184, 0.3); /*đổ bóng giúp tạo chiều sâu và làm cho phần tử nổi bật hơn trên nền */
   color: white;
   text-align: center;
 }
@@ -426,29 +427,50 @@ h2 {
 }
 
 /* ── MODAL ── */
+/* Giao diện nền mờ phía sau */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: rgba(0, 0, 0, 0.65);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(77, 75, 75, 0.7); /* Làm nền tối hơn một chút cho nổi bật */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.2s ease;
+  align-items: center; /* Căn giữa theo chiều dọc */
+  justify-content: center; /* Căn giữa theo chiều ngang */
+  z-index: 9999;
+  padding: 20px; /* Khoảng cách an toàn để không dính sát mép màn hình */
 }
+
+/* Cái bảng (Hộp nội dung) - Chỉnh lại độ rộng và cao */
 .modal-box {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  width: 500px;
-  max-width: 95vw;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.25s ease;
-  overflow: hidden;
+  background: #1e1e1e; /* Màu nền tối cùng tông với dashboard của bạn */
+  padding: 2rem;
+  border-radius: 15px;
+  width: 100%;
+  max-width: 550px; /* Độ rộng vừa đủ cho form nhập liệu */
+  height: auto; /* QUAN TRỌNG: Cao theo nội dung */
+  max-height: 90vh; /* Không cao quá 90% màn hình */
+  overflow-y: auto; /* Nếu nội dung quá dài thì mới hiện cuộn */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  position: relative;
+  border: 1px solid #333; /* Thêm viền nhẹ cho tinh tế */
 }
+/* Modal loại nhỏ (dành cho xác nhận xóa) */
 .modal-sm {
-  width: 360px;
+  max-width: 400px;
+}
+
+/* Để các hàng input co giãn linh hoạt */
+.form-row {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap; /* Tự xuống dòng nếu màn hình quá hẹp */
+}
+
+.form-row .form-group {
+  flex: 1; /* Chia đều chiều rộng */
+  min-width: 200px; /* Đảm bảo không quá nhỏ khi co lại */
 }
 .modal-header {
   display: flex;
@@ -577,6 +599,7 @@ h2 {
 
 /* ── UTILITIES ── */
 .hidden {
+  /*dùng để chuyển đổi từ ẩn sang hiện trong java*/
   display: none !important;
 }
 .tab-section {
@@ -644,3 +667,5 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+/*  */

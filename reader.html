@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Đọc Sách Online</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        background: #333;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        font-family: sans-serif;
+      }
+      .toolbar {
+        background: #1a1a2e;
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #d4af37;
+      }
+      .pdf-viewer {
+        flex: 1;
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+        background: #444;
+      }
+
+      canvas {
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        background: white;
+        max-width: 100%;
+        height: auto; /* */
+      }
+      .btn {
+        background: #d4af37;
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+      .page-info {
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <button class="btn" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i> Thoát
+      </button>
+      <div class="controls">
+        <button class="btn" id="prev_page">Trang trước</button>
+        <span class="page-info"
+          >Trang: <span id="page_num"></span> / <span id="page_count"></span
+        ></span>
+        <button class="btn" id="next_page">Trang sau</button>
+      </div>
+      <div id="book_title" style="font-weight: bold">Đang tải...</div>
+    </div>
+
+    <div class="pdf-viewer">
+      <canvas id="pdf_render"></canvas>
+    </div>
+
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const bookId = urlParams.get("id");
+      const title = urlParams.get("title");
+
+      // Kiểm tra có nhận được id chưa
+      if (!bookId) {
+        alert("Không tìm thấy ID sách! Kiểm tra lại URL.");
+      }
+
+      document.getElementById("book_title").textContent =
+        title || "Không có tiêu đề";
+
+      const fileUrl = `http://localhost:5000/pdf/${bookId}.pdf`;
+      console.log("Book ID nhận được:", bookId);
+      console.log("URL PDF:", fileUrl);
+
+      let pdfDoc = null,
+        pageNum = 1,
+        pageIsRendering = false,
+        pageNumIsPending = null;
+      const scale = 2,
+        canvas = document.querySelector("#pdf_render"),
+        ctx = canvas.getContext("2d");
+
+      // Render trang
+      const renderPage = (num) => {
+        pageIsRendering = true;
+        pdfDoc.getPage(num).then((page) => {
+          // Tự động tính scale vừa với chiều rộng màn hình
+          const viewerWidth =
+            document.querySelector(".pdf-viewer").clientWidth - 40;
+          const viewport0 = page.getViewport({ scale: 1 });
+          const autoScale = viewerWidth / viewport0.width;
+
+          const viewport = page.getViewport({ scale: autoScale });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          const renderCtx = { canvasContext: ctx, viewport };
+          page.render(renderCtx).promise.then(() => {
+            pageIsRendering = false;
+            if (pageNumIsPending !== null) {
+              renderPage(pageNumIsPending);
+              pageNumIsPending = null;
+            }
+          });
+          document.getElementById("page_num").textContent = num;
+        });
+      };
+
+      const queueRenderPage = (num) => {
+        if (pageIsRendering) {
+          pageNumIsPending = num;
+        } else {
+          renderPage(num);
+        }
+      };
+
+      // Trang trước/sau
+      document.querySelector("#prev_page").addEventListener("click", () => {
+        if (pageNum <= 1) return;
+        pageNum--;
+        queueRenderPage(pageNum);
+      });
+
+      document.querySelector("#next_page").addEventListener("click", () => {
+        if (pageNum >= pdfDoc.numPages) return;
+        pageNum++;
+        queueRenderPage(pageNum);
+      });
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+      // Load PDF
+      pdfjsLib
+        .getDocument(fileUrl)
+        .promise.then((pdfDoc_) => {
+          pdfDoc = pdfDoc_;
+          document.getElementById("page_count").textContent = pdfDoc.numPages;
+          renderPage(pageNum);
+        })
+        .catch((err) => {
+          alert("Lỗi tải file PDF: " + err.message);
+        });
+    </script>
+  </body>
+</html>
