@@ -26,6 +26,9 @@
         <a href="#" class="nav-item" data-tab="categories">
           <i class="fas fa-tags"></i> Thể loại
         </a>
+        <a href="#" class="nav-item" data-tab="edit-logs">
+          <i class="fas fa-edit"></i> Nhật ký chỉnh sửa
+        </a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -175,6 +178,38 @@
             <tbody id="categoriesBody">
               <tr>
                 <td colspan="4" class="loading-row">
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== TAB: EDIT LOGS ===== -->
+      <section id="tab-edit-logs" class="tab-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">
+              <i class="fas fa-edit"></i> Nhật Ký Chỉnh Sửa
+            </h1>
+            <p class="section-sub">Lịch sử chỉnh sửa dữ liệu</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Bảng</th>
+                <th>ID Bản ghi</th>
+                <th>Hành động</th>
+                <th>Thời gian</th>
+              </tr>
+            </thead>
+            <tbody id="editLogsBody">
+              <tr>
+                <td colspan="6" class="loading-row">
                   <i class="fas fa-spinner fa-spin"></i> Đang tải...
                 </td>
               </tr>

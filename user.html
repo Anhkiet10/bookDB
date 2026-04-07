@@ -444,6 +444,18 @@
             <div class="name" id="heroUsername">Người dùng</div>
             <div class="role">user</div>
           </div>
+          <button
+            class="btn-logout-hero"
+            onclick="openHistory()"
+            style="
+              background: rgba(201, 168, 76, 0.15);
+              border-color: rgba(201, 168, 76, 0.3);
+            "
+          >
+            <i class="fas fa-clock-rotate-left" style="color: #c9a84c"></i>
+            Lịch sử đọc
+          </button>
+
           <button class="btn-logout-hero" id="logoutBtn">
             <i class="fas fa-right-from-bracket"></i> Đăng xuất
           </button>
@@ -576,6 +588,105 @@
         <p style="color: #aaa">Người phụ trách: Người thứ 2</p>
       </div>
     </div>
+
+    <!-- MODAL LỊCH SỬ ĐỌC -->
+    <div id="modalHistory" class="modal-overlay hidden">
+      <div
+        class="modal-box"
+        style="max-width: 700px; background: #1e1c18; border: 1px solid #2a2720"
+      >
+        <button
+          class="modal-close"
+          data-close="modalHistory"
+          style="position: absolute; top: 1rem; right: 1rem"
+        >
+          <i class="fas fa-xmark"></i>
+        </button>
+
+        <div
+          style="padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid #2a2720"
+        >
+          <h3 style="color: #f0e8d5; font-size: 1.1rem">
+            <i
+              class="fas fa-clock-rotate-left"
+              style="color: #c9a84c; margin-right: 8px"
+            ></i>
+            Lịch sử đọc của bạn
+          </h3>
+          <p style="color: #7a7060; font-size: 0.83rem; margin-top: 4px">
+            Các sách bạn đã mở đọc gần đây
+          </p>
+        </div>
+
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr style="background: rgba(201, 168, 76, 0.07)">
+                <th
+                  style="
+                    padding: 11px 16px;
+                    text-align: left;
+                    color: #c9a84c;
+                    font-size: 0.78rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  Tên sách
+                </th>
+                <th
+                  style="
+                    padding: 11px 16px;
+                    text-align: left;
+                    color: #c9a84c;
+                    font-size: 0.78rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  Tác giả
+                </th>
+                <th
+                  style="
+                    padding: 11px 16px;
+                    text-align: left;
+                    color: #c9a84c;
+                    font-size: 0.78rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  Thể loại
+                </th>
+                <th
+                  style="
+                    padding: 11px 16px;
+                    text-align: left;
+                    color: #c9a84c;
+                    font-size: 0.78rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  Thời gian
+                </th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              <tr>
+                <td
+                  colspan="4"
+                  style="text-align: center; color: #7a7060; padding: 2rem"
+                >
+                  Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <script src="user.js"></script>
   </body>
 </html>

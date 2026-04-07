@@ -33,9 +33,15 @@ async function apiFetch(path, options = {}) {
   // path là đuôi đc cộng vào như /login
   //Nếu khi gọi hàm apiFetch, người dùng không truyền vào tham số thứ hai, thì hãy coi biến options là một cái hộp rỗng {}."
   try {
+    const session = getSession();
+    const headers = { "content-type": "application/json", ...options.headers };
+    if (session?.userId) {
+      headers["X-User-ID"] = session.userId;
+    }
     const res = await fetch(API + path, {
-      headers: { "content-type": "application/json", ...options.headers },
-      ...options, // options này là để như ghi đè lên
+      headers,
+      ...options,
+      // options này là để như ghi đè lên
     });
     const data = await res.json(); //Việc chuyển đổi từ một chuỗi văn bản thô (JSON string) sang một đối tượng JavaScript (Object)
     if (!res.ok)
@@ -51,8 +57,11 @@ async function apiFetch(path, options = {}) {
   }
 }
 
-function saveSession(email, role) {
-  sessionStorage.setItem("bookdb_user", JSON.stringify({ email, role })); // bookdb_user là được tạo tạm thời để lưu trữ
+function saveSession(email, role, userId) {
+  sessionStorage.setItem(
+    "bookdb_user",
+    JSON.stringify({ email, role, userId }),
+  ); // bookdb_user là được tạo tạm thời để lưu trữ
   // Đây là một kho lưu trữ tạm thời của trình duyệt. Dữ liệu trong này sẽ tự động biến mất khi bạn đóng tab hoặc đóng trình duyệt.
   // JSON.stringify chỉ hiểu văn bản thuần túy (string). Vì vậy, chúng ta phải "đóng gói" đối tượng chứa tên người dùng và quyền hạn thành một chuỗi chữ mới lưu được.
 }
@@ -111,7 +120,11 @@ if (document.getElementById("loginForm")) {
           password: document.getElementById("loginPassword").value,
         }), //Value (Giá trị): Nội dung thực sự nằm trong ngăn đó (những gì người dùng gõ vào).
       });
-      saveSession(document.getElementById("loginEmail").value, data.role);
+      saveSession(
+        document.getElementById("loginEmail").value,
+        data.role,
+        data.user_id,
+      );
       showToast("Đăng nhập thành công! Đang chuyển trang...", "success");
       setTimeout(() => {
         if (data.role === "admin") {
@@ -189,6 +202,7 @@ if (document.getElementById("logoutBtn")) {
       if (tab == "books") loadBooks();
       if (tab === "authors") loadAuthors();
       if (tab === "categories") loadCategories();
+      if (tab === "edit-logs") loadEditLogs();
     });
   });
   //
@@ -536,6 +550,37 @@ if (document.getElementById("logoutBtn")) {
         showToast(err.message, "error");
       }
     });
+
+  // ===========================================
+  //  EDIT LOGS
+  // ===========================================
+
+  async function loadEditLogs() {
+    const tbody = document.getElementById("editLogsBody");
+    tbody.innerHTML = `<tr><td colspan="6" class="loading-row"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>`;
+    try {
+      const logs = await apiFetch("/edit-logs");
+      if (!logs.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="loading-row">Chưa có nhật ký nào</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = logs
+        .map(
+          (log, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${log.table_name}</td>
+          <td>${log.record_id}</td>
+          <td>${log.action}</td>
+          <td>${new Date(log.edit_time).toLocaleString()}</td>
+        </tr>
+      `,
+        )
+        .join("");
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="loading-row" style="color:var(--danger)">${err.message}</td></tr>`;
+    }
+  }
 
   // ===========================================
   //  DELETE CONFIRM

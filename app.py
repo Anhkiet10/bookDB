@@ -27,15 +27,15 @@ def login():
     cursor=conn.cursor() #Tạo ra một "con trỏ" (Cursor) để làm việc với dữ liệu.
     #cursor (con trỏ) chính là người thủ thư (hoặc một cánh tay robot) đứng đợi lệnh của bạn.
     cursor.execute(
-        "SELECT password_hash,role FROM Users Where email=?",
+        "SELECT id, password_hash, role FROM Users WHERE email=?",
         data['email']
     )
-    row=cursor.fetchone() # vì là tài khoản chỉ có 1 dòng nên dùng fetchone lấy theo mảng với lần lượt row[0],row[1] là SELECT password_hash,role FROM Users
+    row = cursor.fetchone() # vì là tài khoản chỉ có 1 dòng nên dùng fetchone lấy theo mảng với lần lượt row[0],row[1],row[2]
     conn.close()
-    if row and check_password_hash( # kiểm tra nếu row có tài khoản thì sẽ kiểm tra thêm password
-        row[0],data['password']): #Là mật mã đã bị mã hóa (hashed) lấy từ Database. Nó trông giống như một chuỗi ký tự rác: pbkdf2:sha256:260000$abc123.... và lấy password phần thô để thực hiện mã hóa trong thư viện để so sánh
-        return jsonify({"message" : "đăng nhập thành công","role" : row[1]}) #jsonify: Biến Dictionary của Python thành chuỗi JSON để trình duyệt (JavaScript) có thể đọc được.
-    return jsonify({"error": "sai tài khoản hoặc mật khẩu"}),401
+    if row and check_password_hash(
+        row[1], data['password']):
+        return jsonify({"message": "đăng nhập thành công", "role": row[2], "user_id": row[0]})
+    return jsonify({"error": "sai tài khoản hoặc mật khẩu"}), 401
 
 #đăng ký
 @app.route('/api/register',methods = ['POST'])
@@ -116,22 +116,19 @@ def add_book():
     conn = get_db()
     cursor = conn.cursor()
     try:
-        # Chèn trực tiếp vào bảng Books
-        cursor.execute("""
-            EXEC INSERTBOOOKS @title=? , @author_id =?, @category_id=? , 
-            @published_year =?, @description=? , @quantity=?
-        """, 
-        data['title'], 
-        data['author_id'], 
-        data['category_id'],
-        data.get('published_year'), 
-        data.get('description'), 
-        data.get('quantity', 0) # Lấy quantity, nếu không có thì mặc định là 0
+        cursor.execute(
+            "INSERT INTO Books (title, author_id, category_id, published_year, description, quantity) VALUES (?, ?, ?, ?, ?, ?)",
+            data['title'],
+            data['author_id'],
+            data['category_id'],
+            data.get('published_year'),
+            data.get('description'),
+            data.get('quantity', 0)
         )
         conn.commit()
         return jsonify({"message": "Thêm sách thành công"}), 201
     except Exception as e:
-        print(f"Lỗi: {e}") # In ra màn hình console để bạn dễ kiểm tra
+        print(f"Lỗi: {e}")
         return jsonify({"error": "Không thể thêm sách"}), 500
     finally:
         conn.close()
@@ -143,19 +140,16 @@ def update_book(book_id):
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
-            EXEC upbooks @id=?,@title=? , @author_id =?, @category_id=? , 
-            @published_year =?, @description=? , @quantity=?
-        """, 
-        book_id,
-        data['title'], 
-        data['author_id'], 
-        data['category_id'],
-        data.get('published_year'), 
-        data.get('description'), 
-        data.get('quantity', 0), 
+        cursor.execute(
+            "UPDATE Books SET title=?, author_id=?, category_id=?, published_year=?, description=?, quantity=? WHERE id=?",
+            data['title'],
+            data['author_id'],
+            data['category_id'],
+            data.get('published_year'),
+            data.get('description'),
+            data.get('quantity', 0),
+            book_id
         )
-        
         conn.commit()
         return jsonify({"message": "Cập nhật sách thành công"})
     except Exception as e:
@@ -196,7 +190,7 @@ def add_author():
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "EXEC insertauthors @full_name=? , @bio=? , @birthdate=?",
+        "INSERT INTO Authors (full_name, bio, birthdate) VALUES (?, ?, ?)",
         data['full_name'], data.get('bio'), data.get('birthdate')
     )
     conn.commit()
@@ -210,8 +204,8 @@ def update_author(author_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "EXEC upauthors @id=?,@full_name=?, @bio=?, @birthdate=?",
-        author_id,data['full_name'], data.get('bio'), data.get('birthdate') 
+        "UPDATE Authors SET full_name=?, bio=?, birthdate=? WHERE id=?",
+        data['full_name'], data.get('bio'), data.get('birthdate'), author_id
     )
     conn.commit()
     conn.close()
@@ -251,7 +245,7 @@ def add_category():
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "EXEC insercategories @name =?, @description =?",
+        "INSERT INTO Categories (name, description) VALUES (?, ?)",
         data['name'], data.get('description')
     )
     conn.commit()
@@ -265,8 +259,8 @@ def update_category(cat_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "EXEC upcategories @id=?,@name =?, @description=?",
-        cat_id,data['name'], data.get('description') 
+        "UPDATE Categories SET name=?, description=? WHERE id=?",
+        data['name'], data.get('description'), cat_id
     )
     conn.commit()
     conn.close()
@@ -290,6 +284,46 @@ def serve_pdf(filename):
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET'
     return response
+
+# Hàm này sẽ được gọi mỗi khi có một chỉnh sửa nào đó được thực hiện trên Books, Authors hoặc Categories
+
+def log_edit(table_name, record_id, action):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO EditLogs (table_name, record_id, action) VALUES (?, ?, ?)",
+        table_name, record_id, action
+    )
+    conn.commit()
+    conn.close()
+
+# ============================================================
+#  EDIT LOGS
+# ============================================================
+
+@app.route('/api/edit-logs', methods=['GET'])
+def get_edit_logs():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, table_name, record_id, action, edit_time
+        FROM EditLogs
+        ORDER BY edit_time DESC
+    """)
+    logs = [
+        {
+            "id": r[0], "table_name": r[1], "record_id": r[2],
+            "action": r[3],
+            "edit_time": r[4].isoformat() if r[4] else None
+        }
+        for r in cursor.fetchall()
+    ]
+    conn.close()
+    return jsonify(logs)
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
 

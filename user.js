@@ -189,7 +189,6 @@ function openDetail(id) {
   document.getElementById("detailQty").textContent =
     book.quantity != null ? `${book.quantity} quyển` : "—";
 
-  // ✅ Dùng id thay vì class
   // Tìm nút đọc ngay
   const readBtn = document.getElementById("btnReadNow");
 
@@ -201,6 +200,29 @@ function openDetail(id) {
       window.location.href = url; // ← mở trong tab hiện tại, không bị block
     };
   }
+
+  // Trong hàm openDetail(id), tìm đoạn readBtn.onclick và thay bằng:
+  // if (readBtn) {
+  //   readBtn.onclick = async () => {
+  //     // 1. Ghi lịch sử vào DB qua trigger
+  //     try {
+  //       await apiFetch("/reading-log", {
+  //         method: "POST",
+  //         body: JSON.stringify({
+  //           user_id: session.id, // cần lưu id vào session khi login
+  //           book_id: book.id,
+  //         }),
+  //       });
+  //     } catch (_) {
+  //       // Không chặn việc đọc nếu log lỗi
+  //     }
+
+  // 2. Chuyển sang trang đọc
+  //     const url = `reader.html?id=${book.id}&title=${encodeURIComponent(book.title)}`;
+  //     window.location.href = url;
+  //   };
+  // }
+
   // khi ấn mượn ngay thì sẽ chuyển sang form có thông tin liên hệ
   // Thay đoạn btnborrow hiện tại:
   const borrowBtn = document.getElementById("btnborrow");
@@ -250,7 +272,56 @@ document.querySelectorAll(".modal-overlay").forEach((overlay) => {
 });
 
 //
+// ===== LỊCH SỬ ĐỌC =====
+async function openHistory() {
+  if (!session?.id) {
+    showToast("Không tìm thấy thông tin người dùng", "error");
+    return;
+  }
 
+  openModal("modalHistory");
+  const body = document.getElementById("historyBody");
+  body.innerHTML = `
+    <tr><td colspan="4" style="text-align:center;color:#aaa;padding:2rem">
+      <i class="fas fa-spinner fa-spin"></i> Đang tải...
+    </td></tr>`;
+
+  try {
+    const data = await apiFetch(`/reading-history/${session.id}`);
+
+    if (data.length === 0) {
+      body.innerHTML = `
+        <tr><td colspan="4" style="text-align:center;color:#aaa;padding:2rem">
+          Chưa có lịch sử đọc
+        </td></tr>`;
+      return;
+    }
+
+    body.innerHTML = data
+      .map(
+        (h) => `
+      <tr>
+        <td>${h.title}</td>
+        <td style="color:#aaa">${h.author}</td>
+        <td><span style="
+          background:#2a2720;color:#c9a84c;
+          padding:2px 8px;border-radius:12px;font-size:0.78rem">
+          ${h.category}
+        </span></td>
+        <td style="color:#aaa;font-size:0.85rem">
+          <i class="fas fa-clock" style="color:#c9a84c"></i> ${h.read_at}
+        </td>
+      </tr>
+    `,
+      )
+      .join("");
+  } catch (err) {
+    body.innerHTML = `
+      <tr><td colspan="4" style="text-align:center;color:#e74c3c;padding:2rem">
+        Lỗi: ${err.message}
+      </td></tr>`;
+  }
+}
 // ===== INIT =====
 loadBooks();
 loadCategories();
