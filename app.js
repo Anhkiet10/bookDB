@@ -33,15 +33,9 @@ async function apiFetch(path, options = {}) {
   // path là đuôi đc cộng vào như /login
   //Nếu khi gọi hàm apiFetch, người dùng không truyền vào tham số thứ hai, thì hãy coi biến options là một cái hộp rỗng {}."
   try {
-    const session = getSession();
-    const headers = { "content-type": "application/json", ...options.headers };
-    if (session?.userId) {
-      headers["X-User-ID"] = session.userId;
-    }
     const res = await fetch(API + path, {
-      headers,
-      ...options,
-      // options này là để như ghi đè lên
+      headers: { "content-type": "application/json", ...options.headers },
+      ...options, // options này là để như ghi đè lên
     });
     const data = await res.json(); //Việc chuyển đổi từ một chuỗi văn bản thô (JSON string) sang một đối tượng JavaScript (Object)
     if (!res.ok)
@@ -57,11 +51,8 @@ async function apiFetch(path, options = {}) {
   }
 }
 
-function saveSession(email, role, userId) {
-  sessionStorage.setItem(
-    "bookdb_user",
-    JSON.stringify({ email, role, userId }),
-  ); // bookdb_user là được tạo tạm thời để lưu trữ
+function saveSession(email, role) {
+  sessionStorage.setItem("bookdb_user", JSON.stringify({ email, role })); // bookdb_user là được tạo tạm thời để lưu trữ
   // Đây là một kho lưu trữ tạm thời của trình duyệt. Dữ liệu trong này sẽ tự động biến mất khi bạn đóng tab hoặc đóng trình duyệt.
   // JSON.stringify chỉ hiểu văn bản thuần túy (string). Vì vậy, chúng ta phải "đóng gói" đối tượng chứa tên người dùng và quyền hạn thành một chuỗi chữ mới lưu được.
 }
@@ -120,11 +111,7 @@ if (document.getElementById("loginForm")) {
           password: document.getElementById("loginPassword").value,
         }), //Value (Giá trị): Nội dung thực sự nằm trong ngăn đó (những gì người dùng gõ vào).
       });
-      saveSession(
-        document.getElementById("loginEmail").value,
-        data.role,
-        data.user_id,
-      );
+      saveSession(document.getElementById("loginEmail").value, data.role);
       showToast("Đăng nhập thành công! Đang chuyển trang...", "success");
       setTimeout(() => {
         if (data.role === "admin") {
@@ -295,6 +282,7 @@ if (document.getElementById("logoutBtn")) {
       ? "Chỉnh Sửa Sách"
       : "Thêm Sách";
     document.getElementById("bookId").value = book?.id || "";
+    document.getElementById("bookRowVer").value = book?.row_ver || "";
     document.getElementById("bookTitle").value = book?.title || "";
     document.getElementById("bookYear").value = book?.published_year || "";
     document.getElementById("bookDesc").value = book?.description || "";
@@ -347,6 +335,7 @@ if (document.getElementById("logoutBtn")) {
         parseInt(document.getElementById("bookYear").value) || null,
       description: document.getElementById("bookDesc").value,
       quantity: parseInt(document.getElementById("bookquantity").value) || 0,
+      row_ver: document.getElementById("bookRowVer").value,
     };
     try {
       if (editingBookId) {
@@ -426,6 +415,7 @@ if (document.getElementById("logoutBtn")) {
     document.getElementById("modalAuthorTitle").textContent =
       "Chỉnh Sửa Tác Giả";
     document.getElementById("authorId").value = a.id;
+    document.getElementById("authorRowVer").value = a.row_ver || "";
     document.getElementById("authorName").value = a.full_name;
     document.getElementById("authorBirth").value = a.birthdate || "";
     document.getElementById("authorBio").value = a.bio || "";
@@ -441,6 +431,10 @@ if (document.getElementById("logoutBtn")) {
         birthdate: document.getElementById("authorBirth").value || null,
         bio: document.getElementById("authorBio").value,
       };
+      if (editingAuthorId) {
+        const rowVer = document.getElementById("authorRowVer").value;
+        if (rowVer) payload.row_ver = rowVer;
+      }
       try {
         if (editingAuthorId) {
           await apiFetch(`/authors/${editingAuthorId}`, {
@@ -517,6 +511,7 @@ if (document.getElementById("logoutBtn")) {
     document.getElementById("modalCategoryTitle").textContent =
       "Chỉnh Sửa Thể Loại";
     document.getElementById("categoryId").value = c.id;
+    document.getElementById("categoryRowVer").value = c.row_ver || "";
     document.getElementById("categoryName").value = c.name;
     document.getElementById("categoryDesc").value = c.description || "";
     openModal("modalCategory");
@@ -530,6 +525,10 @@ if (document.getElementById("logoutBtn")) {
         name: document.getElementById("categoryName").value,
         description: document.getElementById("categoryDesc").value,
       };
+      if (editingCategoryId) {
+        const rowVer = document.getElementById("categoryRowVer").value;
+        if (rowVer) payload.row_ver = rowVer;
+      }
       try {
         if (editingCategoryId) {
           await apiFetch(`/categories/${editingCategoryId}`, {
@@ -583,6 +582,8 @@ if (document.getElementById("logoutBtn")) {
   }
 
   // ===========================================
+
+  // ===========================================
   //  DELETE CONFIRM
   // ===========================================
   let deleteTarget = { type: null, id: null };
@@ -632,3 +633,4 @@ if (document.getElementById("logoutBtn")) {
     )
     .catch(() => {});
 }
+///
