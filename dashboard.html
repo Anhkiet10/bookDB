@@ -8,6 +8,81 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
+    <style>
+      /* ── STATS CARD ORDER ── */
+      .stat-card.gold-border {
+        border-left-color: #e8c46a;
+      }
+      .stat-card.green-border {
+        border-left-color: #27ae60;
+      }
+      .stat-card.blue-border {
+        border-left-color: #2980b9;
+      }
+
+      /* ── ORDER STATUS BADGE ── */
+      .order-status {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.76rem;
+        font-weight: 600;
+      }
+      .status-pending {
+        background: rgba(230, 126, 34, 0.15);
+        color: #e67e22;
+      }
+      .status-done {
+        background: rgba(39, 174, 96, 0.15);
+        color: #27ae60;
+      }
+      .status-cancel {
+        background: rgba(192, 57, 43, 0.15);
+        color: #c0392b;
+      }
+
+      /* ── TOTAL REVENUE BOX ── */
+      .revenue-box {
+        background: linear-gradient(
+          135deg,
+          rgba(201, 168, 76, 0.12),
+          rgba(201, 168, 76, 0.04)
+        );
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        border-radius: 14px;
+        padding: 20px 26px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+      .revenue-icon {
+        font-size: 2rem;
+        color: var(--gold);
+      }
+      .revenue-label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      .revenue-amount {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--gold);
+      }
+      .revenue-sub {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      /* ── PRICE INPUT in book form ── */
+      .price-hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+    </style>
   </head>
   <body class="dashboard-body">
     <!-- SIDEBAR -->
@@ -26,6 +101,9 @@
         <a href="#" class="nav-item" data-tab="categories">
           <i class="fas fa-tags"></i> Thể loại
         </a>
+        <a href="#" class="nav-item" data-tab="orders">
+          <i class="fas fa-cart-shopping"></i> Đơn đặt hàng
+        </a>
         <a href="#" class="nav-item" data-tab="edit-logs">
           <i class="fas fa-edit"></i> Nhật ký chỉnh sửa
         </a>
@@ -34,7 +112,7 @@
         <div class="user-info">
           <i class="fas fa-circle-user"></i>
           <span id="sidebarUsername">Người dùng</span>
-          <span id="sidebarRole" class="role-badge">user</span>
+          <span id="sidebarRole" class="role-badge">admin</span>
         </div>
         <button class="btn-logout" id="logoutBtn">
           <i class="fas fa-right-from-bracket"></i> Đăng xuất
@@ -44,7 +122,6 @@
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
-      <!-- TOAST -->
       <div id="toast" class="toast hidden"></div>
 
       <!-- ===== TAB: BOOKS ===== -->
@@ -70,7 +147,6 @@
             </button>
           </div>
         </div>
-
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-book"></i></div>
@@ -94,7 +170,6 @@
             </div>
           </div>
         </div>
-
         <div class="table-wrap">
           <table class="data-table" id="booksTable">
             <thead>
@@ -105,12 +180,13 @@
                 <th>Thể loại</th>
                 <th>Năm XB</th>
                 <th>Số lượng</th>
+                <th>Giá</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody id="booksBody">
               <tr>
-                <td colspan="7" class="loading-row">
+                <td colspan="8" class="loading-row">
                   <i class="fas fa-spinner fa-spin"></i> Đang tải...
                 </td>
               </tr>
@@ -186,6 +262,57 @@
         </div>
       </section>
 
+      <!-- ===== TAB: ORDERS ===== -->
+      <section id="tab-orders" class="tab-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">
+              <i class="fas fa-cart-shopping"></i> Quản Lý Đơn Đặt Hàng
+            </h1>
+            <p class="section-sub">Danh sách các đơn đặt sách từ người dùng</p>
+          </div>
+          <button class="btn btn-gold" id="btnRefreshOrders">
+            <i class="fas fa-rotate-right"></i> Làm mới
+          </button>
+        </div>
+
+        <!-- Tổng doanh thu -->
+        <div class="revenue-box">
+          <div class="revenue-icon"><i class="fas fa-sack-dollar"></i></div>
+          <div>
+            <div class="revenue-label">Tổng doanh thu</div>
+            <div class="revenue-amount" id="totalRevenue">—</div>
+            <div class="revenue-sub">
+              <span id="totalOrders">—</span> đơn &nbsp;·&nbsp;
+              <span id="totalCustomers">—</span> khách hàng
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên sách</th>
+                <th>Email khách</th>
+                <th>Ngày đặt</th>
+                <th>Giá</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody">
+              <tr>
+                <td colspan="7" class="loading-row">
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- ===== TAB: EDIT LOGS ===== -->
       <section id="tab-edit-logs" class="tab-section hidden">
         <div class="section-header">
@@ -209,7 +336,7 @@
             </thead>
             <tbody id="editLogsBody">
               <tr>
-                <td colspan="6" class="loading-row">
+                <td colspan="5" class="loading-row">
                   <i class="fas fa-spinner fa-spin"></i> Đang tải...
                 </td>
               </tr>
@@ -254,15 +381,38 @@
               </select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Năm xuất bản</label>
+              <input
+                type="number"
+                id="bookYear"
+                placeholder="VD: 2024"
+                min="1000"
+                max="2099"
+              />
+            </div>
+            <div class="form-group">
+              <label>Số lượng</label>
+              <input
+                type="number"
+                id="bookquantity"
+                placeholder="Số lượng sách"
+                min="0"
+              />
+            </div>
+          </div>
           <div class="form-group">
-            <label>Năm xuất bản</label>
+            <label>Giá sách (VNĐ)</label>
             <input
               type="number"
-              id="bookYear"
-              placeholder="VD: 2024"
-              min="1000"
-              max="2099"
+              id="bookPrice"
+              placeholder="VD: 85000"
+              min="0"
             />
+            <div class="price-hint">
+              <i class="fas fa-circle-info"></i> Nhập 0 nếu miễn phí
+            </div>
           </div>
           <div class="form-group">
             <label>Mô tả</label>
@@ -271,15 +421,6 @@
               placeholder="Nhập mô tả sách..."
               rows="3"
             ></textarea>
-          </div>
-          <div class="form-group">
-            <label>Số lượng</label>
-            <input
-              type="number"
-              id="bookquantity"
-              placeholder="Nhập số lượng sách..."
-              min="0"
-            />
           </div>
           <div class="modal-actions">
             <button
@@ -387,6 +528,35 @@
       </div>
     </div>
 
+    <!-- ===== MODAL: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG ===== -->
+    <div id="modalOrderStatus" class="modal-overlay hidden">
+      <div class="modal-box modal-sm">
+        <div class="modal-header">
+          <h3>Cập nhật trạng thái</h3>
+          <button class="modal-close" data-close="modalOrderStatus">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-form">
+          <input type="hidden" id="orderStatusId" />
+          <div class="form-group">
+            <label>Trạng thái mới</label>
+            <select id="orderStatusSelect">
+              <option value="Chờ xử lý">Chờ xử lý</option>
+              <option value="Đã xử lý">Đã xử lý</option>
+              <option value="Đã hủy">Đã hủy</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" data-close="modalOrderStatus">
+            Hủy
+          </button>
+          <button class="btn btn-gold" id="saveOrderStatusBtn">Lưu</button>
+        </div>
+      </div>
+    </div>
+
     <!-- CONFIRM DELETE MODAL -->
     <div id="modalConfirm" class="modal-overlay hidden">
       <div class="modal-box modal-sm">
@@ -407,6 +577,6 @@
       </div>
     </div>
 
-    <script src="main.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>

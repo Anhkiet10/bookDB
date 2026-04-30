@@ -63,7 +63,6 @@
       .hero-brand span {
         color: var(--gold);
       }
-
       .hero-user {
         z-index: 0;
         position: relative;
@@ -85,7 +84,6 @@
         text-transform: uppercase;
         letter-spacing: 1px;
       }
-
       .btn-logout-hero {
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -279,29 +277,29 @@
       }
       .book-meta {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-top: 0.5rem;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.3rem;
       }
       .book-category {
-        font-size: 0.75rem;
-        background: #f0eee8;
-        color: #666;
-        padding: 0.2rem 0.6rem;
+        background: #f0e8d5;
+        color: #7a5c1e;
+        padding: 0.15rem 0.6rem;
         border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
       }
       .book-year {
         font-size: 0.78rem;
         color: #aaa;
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
       }
-      .book-year i {
-        font-size: 0.7rem;
+      .book-price-tag {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--gold);
+        margin-top: 0.4rem;
       }
-
-      /* Empty & Loading States */
       .empty-state {
         grid-column: 1 / -1;
         text-align: center;
@@ -322,16 +320,15 @@
         max-width: 580px;
       }
       .modal-box_u {
-        background: #6b6b6d !important; /* Hoặc màu nền của bạn */
+        background: #2a2828 !important;
         border-radius: 12px;
-        width: 100%; /* Ưu tiên chiếm hết chiều ngang có thể */
-        max-width: 600px; /* Giới hạn độ rộng tối đa trên máy tính */
-        max-height: 90vh; /* Không cao quá 90% màn hình */
-        overflow-y: auto; /* Tự xuất hiện thanh cuộn nếu nội dung quá dài */
+        width: 100%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
         position: relative;
         transition: all 0.3s ease;
       }
-
       .detail-cover {
         height: 140px;
         background: linear-gradient(135deg, #1a1a2e, #0f3460);
@@ -377,15 +374,15 @@
       }
       .detail-item span {
         font-size: 0.95rem;
-        color: #1a1a2e;
+        color: #f0e8d5;
         font-weight: 600;
       }
       .detail-desc {
-        background: #f8f7f4;
+        background: rgba(255, 255, 255, 0.05);
         border-radius: 8px;
         padding: 1rem;
         font-size: 0.9rem;
-        color: #3f3c3c;
+        color: #ccc;
         line-height: 1.6;
         border-left: 3px solid var(--gold);
       }
@@ -395,6 +392,91 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 0.5rem;
+      }
+
+      /* Giá sách trong modal */
+      .detail-price-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(201, 168, 76, 0.1);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+      }
+      .detail-price-label {
+        font-size: 0.82rem;
+        color: #aaa;
+      }
+      .detail-price-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--gold);
+      }
+      .detail-qty-status {
+        font-size: 0.78rem;
+      }
+      .qty-ok {
+        color: #27ae60;
+      }
+      .qty-out {
+        color: #e74c3c;
+      }
+
+      /* Nút đặt ngay */
+      .btn-order {
+        background: linear-gradient(135deg, var(--gold), #e8c46a);
+        color: #1a1000;
+        font-weight: 700;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+      }
+      .btn-order:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(201, 168, 76, 0.4);
+      }
+      .btn-order:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Modal xác nhận đặt */
+      .order-confirm-box {
+        background: #1e1c18;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+      }
+      .order-confirm-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.88rem;
+      }
+      .order-confirm-row:last-child {
+        border-bottom: none;
+        font-weight: 700;
+        font-size: 1rem;
+      }
+      .order-confirm-row .label {
+        color: #aaa;
+      }
+      .order-confirm-row .value {
+        color: #f0e8d5;
+      }
+      .order-confirm-row .value.gold {
+        color: var(--gold);
       }
 
       /* Responsive */
@@ -440,6 +522,9 @@
           >
         </div>
         <div class="hero-user">
+          <button class="btn-order" id="orderBtn">
+            <i class="fas fa-shopping-cart"></i>giỏ hàng
+          </button>
           <div class="hero-user-info">
             <div class="name" id="heroUsername">Người dùng</div>
             <div class="role">user</div>
@@ -449,8 +534,6 @@
           </button>
         </div>
       </div>
-
-      <!-- Search + Category Filter -->
       <div class="search-filter-bar">
         <div class="search-wrap-hero">
           <i class="fas fa-search"></i>
@@ -532,50 +615,151 @@
             <span id="detailQty">—</span>
           </div>
         </div>
+
+        <!-- GIÁ SÁCH -->
+        <div class="detail-price-box">
+          <div>
+            <div class="detail-price-label">
+              <i class="fas fa-tag"></i> Giá sách
+            </div>
+            <div class="detail-price-value" id="detailPrice">—</div>
+          </div>
+          <div id="detailStockStatus" class="detail-qty-status"></div>
+        </div>
+
         <div id="detailDescWrap" style="display: none">
           <div class="detail-desc-label">
             <i class="fas fa-align-left"></i> Mô tả
           </div>
           <div class="detail-desc" id="detailDesc"></div>
         </div>
-        <div style="margin-top: 1.5rem; text-align: right">
-          <button class="btn btn-borrow" id="btnborrow">mượn ngay</button>
-          <button class="btn btn-read" id="btnReadNow">đọc ngay</button>
+
+        <div
+          style="
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+          "
+        >
+          <button class="btn-order" id="btnOrderNow">
+            <i class="fas fa-cart-shopping"></i> Đặt ngay
+          </button>
           <button class="btn btn-outline" data-close="modalDetail">Đóng</button>
         </div>
       </div>
     </div>
-    <!-- tạo bảng hiện thông tin khi ấn vào mượn sách-->
-    <!-- Thay thế div link_borrow cũ bằng: -->
-    <div id="link_borrow" class="modal-overlay hidden">
-      <div class="modal-box_u" style="padding: 1.5rem; max-width: 400px">
+
+    <!-- MODAL XÁC NHẬN ĐẶT SÁCH -->
+    <div id="modalOrderConfirm" class="modal-overlay hidden">
+      <div class="modal-box_u" style="padding: 1.5rem; max-width: 440px">
         <button
           class="modal-close"
-          data-close="link_borrow"
+          data-close="modalOrderConfirm"
           style="position: absolute; top: 1rem; right: 1rem"
         >
           <i class="fas fa-xmark"></i>
         </button>
         <h3 style="color: #fff; margin-bottom: 1rem">
-          <i class="fas fa-phone" style="color: var(--gold)"></i> Thông tin mượn
-          sách
+          <i class="fas fa-cart-shopping" style="color: var(--gold)"></i> Xác
+          nhận đặt sách
         </h3>
-        <p style="color: #ccc; margin-bottom: 0.5rem">
-          Liên hệ thủ thư để mượn sách:
+        <div class="order-confirm-box">
+          <div class="order-confirm-row">
+            <span class="label">Tên sách</span>
+            <span class="value" id="confirmBookTitle">—</span>
+          </div>
+          <div class="order-confirm-row">
+            <span class="label">Email đặt</span>
+            <span class="value" id="confirmEmail">—</span>
+          </div>
+          <div class="order-confirm-row">
+            <span class="label">Giá</span>
+            <span class="value gold" id="confirmPrice">—</span>
+          </div>
+        </div>
+        <p style="color: #aaa; font-size: 0.85rem; margin-bottom: 1rem">
+          <i class="fas fa-circle-info" style="color: var(--gold)"></i>
+          Sau khi đặt, số lượng sách sẽ được trừ. Vui lòng đến thư viện để nhận
+          sách.
         </p>
-        <a
-          href="tel:123465"
-          style="color: var(--gold); font-size: 1.2rem; font-weight: bold"
-        >
-          <i class="fas fa-phone"></i> 123-465
-        </a>
-        <p style="color: #fff; margin-top: 1rem; font-weight: 600">
-          Hoàng Anh Kiệt <br />
-          văn trọng
-        </p>
-        <p style="color: #aaa">Người phụ trách: Người thứ 2</p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end">
+          <button class="btn btn-outline" data-close="modalOrderConfirm">
+            Hủy
+          </button>
+          <button class="btn-order" id="confirmOrderBtn">
+            <i class="fas fa-check"></i> Xác nhận đặt
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- MODAL ĐẶT THÀNH CÔNG -->
+    <div id="modalOrderSuccess" class="modal-overlay hidden">
+      <div
+        class="modal-box_u"
+        style="padding: 2rem; max-width: 400px; text-align: center"
+      >
+        <div style="font-size: 3.5rem; margin-bottom: 1rem">🎉</div>
+        <h3 style="color: var(--gold); margin-bottom: 0.5rem">
+          Đặt sách thành công!
+        </h3>
+        <p
+          style="color: #ccc; font-size: 0.9rem; margin-bottom: 1.5rem"
+          id="successMsg"
+        >
+          Đơn hàng của bạn đã được ghi nhận.
+        </p>
+        <div
+          class="order-confirm-box"
+          id="successDetail"
+          style="text-align: left"
+        ></div>
+        <button
+          class="btn-order"
+          onclick="closeModal('modalOrderSuccess')"
+          style="margin-top: 1.5rem; width: 100%; justify-content: center"
+        >
+          <i class="fas fa-check"></i> Đóng
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== TAB: ORDERS ===== -->
+    <section id="tab-orders" class="tab-section hidden">
+      <div class="section-header">
+        <div>
+          <button class="btn btn-gold" id="btnRefreshhome">
+            <i class="fas fa-home"></i> Trang chủ
+          </button>
+        </div>
+        <button class="btn btn-gold" id="btnRefreshOrders">
+          <i class="fas fa-rotate-right"></i> Làm mới
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tên sách</th>
+              <th>Ngày đặt</th>
+              <th>Giá</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody">
+            <tr>
+              <td colspan="5" class="loading-row">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <script src="user.js"></script>
   </body>

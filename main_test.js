@@ -51,14 +51,6 @@ async function apiFetch(path, options = {}) {
   }
 }
 
-function formatPrice(price) {
-  if (price == null || price === 0) return "Miễn phí";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
-}
-
 function saveSession(email, role) {
   sessionStorage.setItem("bookdb_user", JSON.stringify({ email, role })); // bookdb_user là được tạo tạm thời để lưu trữ
   // Đây là một kho lưu trữ tạm thời của trình duyệt. Dữ liệu trong này sẽ tự động biến mất khi bạn đóng tab hoặc đóng trình duyệt.
@@ -197,8 +189,6 @@ if (document.getElementById("logoutBtn")) {
       if (tab == "books") loadBooks();
       if (tab === "authors") loadAuthors();
       if (tab === "categories") loadCategories();
-      if (tab === "orders") loadOrders();
-      if (tab === "edit-logs") loadEditLogs();
     });
   });
   //
@@ -235,7 +225,7 @@ if (document.getElementById("logoutBtn")) {
   //Từ khóa let trong JavaScript có mục đích chính là khai báo một biến có thể thay đổi giá trị và giới hạn phạm vi hoạt động của biến đó để code an toàn hơn.
   async function loadBooks() {
     const tbody = document.getElementById("booksBody"); // đây là class của bảng hiện danh sách books
-    tbody.innerHTML = `<tr><td colspan="8" class="loading-row"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="loading-row"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>`;
     // dòng này là để khi thực hiện thao tác thêm sửa xóa thì nó sẽ load lại trong tg chờ load thì hiện dòng này lên
     try {
       const books = await apiFetch("/books"); // gửi api để lấy dữ liệu vào books
@@ -243,7 +233,7 @@ if (document.getElementById("logoutBtn")) {
       // textcontent là thay đổi dữ liệu trong thẻ có id statBooks thành books.length với length là đếm số lượng
       if (!books.length) {
         // nếu số lượng sách bằng 0
-        tbody.innerHTML = `<tr><td colspan="8" class="loading-row">Chưa có sách nào</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="loading-row">Chưa có sách nào</td></tr>`;
         return;
       }
       tbody.innerHTML = books // hiển thị bảng danh sách khi gọi api
@@ -264,7 +254,6 @@ if (document.getElementById("logoutBtn")) {
           <td><span style="background:rgba(201,168,76,0.15);color:var(--gold);padding:2px 9px;border-radius:20px;font-size:0.78rem">${b.category}</span></td>
           <td>${b.published_year || "—"}</td>
           <td>${b.quantity || 0}</td>
-          <td style="color:var(--gold);font-weight:600">${formatPrice(b.price)}</td>
           <td>
             <div class="action-btns">
               <button class="btn btn-outline btn-sm btn-icon" onclick="editBook(${b.id})" title="Sửa">
@@ -282,7 +271,7 @@ if (document.getElementById("logoutBtn")) {
         .join(""); //Hàm .map() sau khi chạy xong sẽ trả về một Mảng các chuỗi HTML (như ["<tr>...</tr>", "<tr>...</tr>"]).
       //Sẽ dán tất cả các chuỗi đó lại với nhau thành một chuỗi văn bản khổng lồ duy nhất để gán vào tbody.innerHTML.
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="8" class="loading-row" style="color:var(--danger)">${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:var(--danger)">${err.message}</td></tr>`;
     }
   }
   //
@@ -292,12 +281,10 @@ if (document.getElementById("logoutBtn")) {
       ? "Chỉnh Sửa Sách"
       : "Thêm Sách";
     document.getElementById("bookId").value = book?.id || "";
-    document.getElementById("bookRowVer").value = book?.row_ver || "";
     document.getElementById("bookTitle").value = book?.title || "";
     document.getElementById("bookYear").value = book?.published_year || "";
     document.getElementById("bookDesc").value = book?.description || "";
     document.getElementById("bookquantity").value = book?.quantity || "";
-    document.getElementById("bookPrice").value = book?.price || "";
     // Load selects
     const [authors, categories] = await Promise.all([
       apiFetch("/authors"),
@@ -346,8 +333,6 @@ if (document.getElementById("logoutBtn")) {
         parseInt(document.getElementById("bookYear").value) || null,
       description: document.getElementById("bookDesc").value,
       quantity: parseInt(document.getElementById("bookquantity").value) || 0,
-      price: parseFloat(document.getElementById("bookPrice").value) || 0,
-      row_ver: document.getElementById("bookRowVer").value,
     };
     try {
       if (editingBookId) {
@@ -427,7 +412,6 @@ if (document.getElementById("logoutBtn")) {
     document.getElementById("modalAuthorTitle").textContent =
       "Chỉnh Sửa Tác Giả";
     document.getElementById("authorId").value = a.id;
-    document.getElementById("authorRowVer").value = a.row_ver || "";
     document.getElementById("authorName").value = a.full_name;
     document.getElementById("authorBirth").value = a.birthdate || "";
     document.getElementById("authorBio").value = a.bio || "";
@@ -443,10 +427,6 @@ if (document.getElementById("logoutBtn")) {
         birthdate: document.getElementById("authorBirth").value || null,
         bio: document.getElementById("authorBio").value,
       };
-      if (editingAuthorId) {
-        const rowVer = document.getElementById("authorRowVer").value;
-        if (rowVer) payload.row_ver = rowVer;
-      }
       try {
         if (editingAuthorId) {
           await apiFetch(`/authors/${editingAuthorId}`, {
@@ -523,7 +503,6 @@ if (document.getElementById("logoutBtn")) {
     document.getElementById("modalCategoryTitle").textContent =
       "Chỉnh Sửa Thể Loại";
     document.getElementById("categoryId").value = c.id;
-    document.getElementById("categoryRowVer").value = c.row_ver || "";
     document.getElementById("categoryName").value = c.name;
     document.getElementById("categoryDesc").value = c.description || "";
     openModal("modalCategory");
@@ -537,10 +516,6 @@ if (document.getElementById("logoutBtn")) {
         name: document.getElementById("categoryName").value,
         description: document.getElementById("categoryDesc").value,
       };
-      if (editingCategoryId) {
-        const rowVer = document.getElementById("categoryRowVer").value;
-        if (rowVer) payload.row_ver = rowVer;
-      }
       try {
         if (editingCategoryId) {
           await apiFetch(`/categories/${editingCategoryId}`, {
@@ -561,127 +536,6 @@ if (document.getElementById("logoutBtn")) {
         showToast(err.message, "error");
       }
     });
-
-  // ===========================================
-  //  ORDERS — QUẢN LÝ ĐƠN ĐẶT HÀNG
-  // ===========================================
-
-  async function loadOrders() {
-    const tbody = document.getElementById("ordersBody");
-    tbody.innerHTML = `<tr><td colspan="7" class="loading-row"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>`;
-
-    // Load stats và danh sách song song
-    try {
-      const [orders, stats] = await Promise.all([
-        apiFetch("/orders"),
-        apiFetch("/orders/stats"),
-      ]);
-
-      // Hiện thống kê doanh thu
-      document.getElementById("totalRevenue").textContent = formatPrice(
-        stats.total_revenue,
-      );
-      document.getElementById("totalOrders").textContent =
-        stats.total_orders + " đơn";
-      document.getElementById("totalCustomers").textContent =
-        stats.total_customers + " khách";
-
-      if (!orders.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="loading-row">Chưa có đơn hàng nào</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = orders
-        .map((o, i) => {
-          const statusClass =
-            o.status === "Đã xử lý"
-              ? "status-done"
-              : o.status === "Đã hủy"
-                ? "status-cancel"
-                : "status-pending";
-          return `
-          <tr>
-            <td>${i + 1}</td>
-            <td><strong>${o.book_title}</strong></td>
-            <td style="color:var(--muted)">${o.user_email}</td>
-            <td>${new Date(o.order_date).toLocaleString("vi-VN")}</td>
-            <td style="color:var(--gold);font-weight:600">${formatPrice(o.price)}</td>
-            <td><span class="order-status ${statusClass}">${o.status}</span></td>
-            <td>
-              <button class="btn btn-outline btn-sm" onclick="openOrderStatus(${o.id}, '${o.status}')">
-                <i class="fas fa-pen"></i> Cập nhật
-              </button>
-            </td>
-          </tr>`;
-        })
-        .join("");
-    } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="7" class="loading-row" style="color:var(--danger)">${err.message}</td></tr>`;
-    }
-  }
-
-  // Nút làm mới
-  document
-    .getElementById("btnRefreshOrders")
-    ?.addEventListener("click", loadOrders);
-
-  // Mở modal cập nhật trạng thái
-  window.openOrderStatus = (id, currentStatus) => {
-    document.getElementById("orderStatusId").value = id;
-    document.getElementById("orderStatusSelect").value = currentStatus;
-    openModal("modalOrderStatus");
-  };
-
-  // Lưu trạng thái mới
-  document
-    .getElementById("saveOrderStatusBtn")
-    ?.addEventListener("click", async () => {
-      const id = document.getElementById("orderStatusId").value;
-      const status = document.getElementById("orderStatusSelect").value;
-      try {
-        await apiFetch(`/orders/${id}`, {
-          method: "PUT",
-          body: JSON.stringify({ status }),
-        });
-        showToast("Cập nhật trạng thái thành công!");
-        closeModal("modalOrderStatus");
-        loadOrders();
-      } catch (err) {
-        showToast(err.message, "error");
-      }
-    });
-
-  // ===========================================
-  //  EDIT LOGS
-  // ===========================================
-
-  async function loadEditLogs() {
-    const tbody = document.getElementById("editLogsBody");
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-row"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>`;
-    try {
-      const logs = await apiFetch("/edit-logs");
-      if (!logs.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="loading-row">Chưa có nhật ký nào</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = logs
-        .map(
-          (log, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${log.table_name}</td>
-          <td>${log.record_id}</td>
-          <td>${log.action}</td>
-          <td>${new Date(log.edit_time).toLocaleString()}</td>
-        </tr>
-      `,
-        )
-        .join("");
-    } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5" class="loading-row" style="color:var(--danger)">${err.message}</td></tr>`;
-    }
-  }
-
-  // ===========================================
 
   // ===========================================
   //  DELETE CONFIRM
@@ -733,4 +587,3 @@ if (document.getElementById("logoutBtn")) {
     )
     .catch(() => {});
 }
-///

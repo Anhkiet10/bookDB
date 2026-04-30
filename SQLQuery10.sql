@@ -2,9 +2,9 @@
 --  Bao gồm: Tables, Views, Stored Procedures, Functions, Triggers
 -- ============================================================
 
-CREATE DATABASE BookDB;
+CREATE  DATABASE TESTDB;
 GO
-USE BookDB
+USE Book_DB
 
 -- ============================================================
 --  1. TABLES
@@ -14,14 +14,16 @@ CREATE TABLE Authors (
     id        INT PRIMARY KEY IDENTITY,
     full_name NVARCHAR(200) NOT NULL,
     bio       NVARCHAR(MAX),
-    birthdate DATE
+    birthdate DATE,
+    row_ver   ROWVERSION NOT NULL
 );
 GO
 
 CREATE TABLE Categories (
     id          INT PRIMARY KEY IDENTITY,
     name        NVARCHAR(100) NOT NULL UNIQUE,
-    description NVARCHAR(500)
+    description NVARCHAR(500),
+    row_ver     ROWVERSION NOT NULL
 );
 GO
 
@@ -79,14 +81,14 @@ CREATE VIEW vw_books AS
 SELECT b.id, b.title, b.author_id, b.category_id,
                a.full_name AS author, c.name AS category,
                b.published_year, b.description,b.quantity,
-               b.row_ver
+               b.row_ver, b.price
         FROM Books b
         JOIN Authors    a ON b.author_id   = a.id
         JOIN Categories c ON b.category_id = c.id
 
 use BookDB
 
-CREATE alter  VIEW vw_authors AS
+CREATE VIEW vw_authors AS
 SELECT 
     id, 
     full_name, 
@@ -105,13 +107,14 @@ FROM Categories;
 --  Lý do: Ngăn phantom read — tránh trường hợp hai session
 --         cùng INSERT sách trùng author/category chưa tồn tại.
 -- ------------------------------------------------------------
-create PROC INSERTBOOOKS
+create alter PROC INSERTBOOOKS
   @title        NVARCHAR(200),
   @author_id    INT,
   @category_id  INT,
   @published_year INT,
   @description  NVARCHAR(MAX),
-  @quantity     INT
+  @quantity     INT,
+  @price DECIMAL(18, 0) 
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -124,10 +127,10 @@ BEGIN
 
       INSERT INTO Books
         (title, author_id, category_id,
-         published_year, description, quantity)
+         published_year, description, quantity,price)
       VALUES
         (@title, @author_id, @category_id,
-         @published_year, @description, @quantity);
+         @published_year, @description, @quantity,@price);
 
     COMMIT TRANSACTION;          -- Cam kết nếu không lỗi
 
@@ -157,6 +160,7 @@ BEGIN
     SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
     BEGIN TRY
         BEGIN TRANSACTION;
+
  
             INSERT INTO Authors (full_name, bio, birthdate)
             VALUES (@full_name, @bio, @birthdate);
@@ -184,7 +188,7 @@ BEGIN
     SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
     BEGIN TRY
         BEGIN TRANSACTION;
- 
+
             INSERT INTO Categories (name, description)
             VALUES (@name, @description);
  
@@ -197,7 +201,7 @@ BEGIN
 END;
 
 
-create PROC upbooks
+create alter PROC upbooks
      @id int,
     @title NVARCHAR(200),
     @author_id int,
@@ -205,7 +209,8 @@ create PROC upbooks
     @published_year int,
     @description NVARCHAR(MAX),
     @quantity int,
-    @row_ver BINARY(8)
+    @row_ver BINARY(8),
+    @price DECIMAL(18, 0) 
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -220,7 +225,8 @@ BEGIN
             category_id = @category_id,
             published_year = @published_year,
             description = @description,
-            quantity = @quantity
+            quantity = @quantity,
+            price = @price
         WHERE id = @id
           AND row_ver = @row_ver;
         IF @@ROWCOUNT = 0
@@ -331,7 +337,7 @@ END;
 --         READ COMMITTED là đủ và giảm tranh chấp lock.
 -- ------------------------------------------------------------
 
- CREATE alter PROC deletebooks
+ CREATE PROC deletebooks
     @id INT
 AS
 BEGIN
@@ -358,7 +364,7 @@ GO
 --  Isolation: READ COMMITTED
 --  Lý do: DELETE theo PK đơn giản, READ COMMITTED là đủ.
 -- ------------------------------------------------------------
-create alter proc deleteauthors
+create  proc deleteauthors
 @id int
 as
 begin
@@ -382,7 +388,7 @@ GO
 --  Isolation: READ COMMITTED
 --  Lý do: DELETE theo PK, không cần mức cao hơn.
 -- ------------------------------------------------------------
-create alter proc deletecategories
+create  proc deletecategories
 @id int
 as
 begin
@@ -588,3 +594,189 @@ GO
     ALTER TABLE Books
        ADD row_ver ROWVERSION NOT NULL;
  END
+
+ USE BookDB;
+GO
+ 
+-- ============================================================
+--  BƯỚC 1: Thêm cột price vào bảng Books
+-- ============================================================
+ALTER TABLE Books
+ADD price DECIMAL(18, 0) DEFAULT 0;
+GO
+
+CREATE TABLE Cart (
+    id         INT PRIMARY KEY IDENTITY,
+    book_id    INT NOT NULL,
+    name       NVARCHAR(200) NOT NULL,   -- tên sách (snapshot)
+    price      DECIMAL(18, 0) NOT NULL,  -- giá tại thời điểm thêm vào giỏ
+    user_email NVARCHAR(200) NOT NULL,   -- email người đặt
+    added_at   DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_Cart_Books FOREIGN KEY (book_id) REFERENCES Books(id)
+);
+GO
+ 
+-- ============================================================
+--  BƯỚC 3: Tạo bảng Orders (Đơn đặt hàng)
+-- ============================================================
+CREATE TABLE Orders (
+    id           INT PRIMARY KEY IDENTITY,
+    book_id      INT NOT NULL,
+    book_title   NVARCHAR(200) NOT NULL,  -- snapshot tên sách
+    user_email   NVARCHAR(200) NOT NULL,
+    order_date   DATETIME DEFAULT GETDATE(),
+    price        DECIMAL(18, 0) NOT NULL,
+    status       NVARCHAR(50) DEFAULT N'Chờ xử lý',
+    CONSTRAINT FK_Orders_Books FOREIGN KEY (book_id) REFERENCES Books(id)
+);
+GO
+
+CREATE VIEW vw_orders AS
+SELECT 
+    o.id,
+    o.book_title,
+    o.user_email,
+    o.order_date,
+    o.price,
+    o.status,
+    o.book_id
+FROM Orders o;
+GO
+ 
+-- ============================================================
+--  BƯỚC 5: Stored Procedure đặt sách
+--  - Kiểm tra quantity > 0
+--  - Giảm quantity đi 1
+--  - Thêm vào Orders
+--  - Thêm vào Cart
+-- ============================================================
+CREATE PROC place_order
+    @book_id    INT,
+    @user_email NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+ 
+    BEGIN TRY
+        BEGIN TRANSACTION;
+ 
+        -- Lấy thông tin sách và khóa hàng
+        DECLARE @qty   INT;
+        DECLARE @title NVARCHAR(200);
+        DECLARE @price DECIMAL(18, 0);
+ 
+        SELECT @qty = quantity, @title = title, @price = ISNULL(price, 0)
+        FROM Books WITH (UPDLOCK, ROWLOCK)
+        WHERE id = @book_id;
+ 
+        -- Kiểm tra tồn tại
+        IF @qty IS NULL
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 50010, N'Không tìm thấy sách.', 1;
+        END
+ 
+        -- Kiểm tra số lượng
+        IF @qty <= 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 50011, N'Sách đã hết, không thể đặt.', 1;
+        END
+ 
+        -- Giảm số lượng
+        UPDATE Books SET quantity = quantity - 1 WHERE id = @book_id;
+ 
+        -- Lưu vào Orders
+        INSERT INTO Orders (book_id, book_title, user_email, price)
+        VALUES (@book_id, @title, @user_email, @price);
+ 
+        -- Lưu vào Cart
+        INSERT INTO Cart (book_id, name, price, user_email)
+        VALUES (@book_id, @title, @price, @user_email);
+ 
+        COMMIT TRANSACTION;
+ 
+        -- Trả về thông tin đơn vừa tạo
+        SELECT TOP 1 id, book_title, price, order_date, status
+        FROM Orders
+        WHERE book_id = @book_id AND user_email = @user_email
+        ORDER BY order_date DESC;
+ 
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+
+-- ============================================================
+--  BƯỚC 6: Function tính tổng tiền tất cả đơn hàng
+--  Dùng: SELECT dbo.fn_total_revenue()
+-- ============================================================
+CREATE FUNCTION dbo.fn_total_revenue()
+RETURNS DECIMAL(18, 0)
+AS
+BEGIN
+    DECLARE @total DECIMAL(18, 0);
+    SELECT @total = ISNULL(SUM(price), 0) FROM Orders;
+    RETURN @total;
+END;
+GO
+
+-- ============================================================
+--  BƯỚC 7: Function tính tổng tiền theo email người dùng
+--  Dùng: SELECT dbo.fn_user_total('user@email.com')
+-- ============================================================
+CREATE FUNCTION dbo.fn_user_total(@email NVARCHAR(200))
+RETURNS DECIMAL(18, 0)
+AS
+BEGIN
+    DECLARE @total DECIMAL(18, 0);
+    SELECT @total = ISNULL(SUM(price), 0)
+    FROM Orders
+    WHERE user_email = @email;
+    RETURN @total;
+END;
+GO
+-- ============================================================
+--  BƯỚC 8: Stored Procedure lấy tổng doanh thu + số đơn
+-- ============================================================
+CREATE PROC get_order_stats
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        COUNT(*)                    AS total_orders,
+        dbo.fn_total_revenue()      AS total_revenue,
+        COUNT(DISTINCT user_email)  AS total_customers
+    FROM Orders;
+END;
+GO
+
+-- ============================================================
+--  BƯỚC 9: Cập nhật view vw_books để bao gồm price
+-- ============================================================
+ALTER VIEW vw_books AS
+SELECT 
+    b.id, 
+    b.title, 
+    b.author_id, 
+    b.category_id,
+    a.full_name   AS author, 
+    c.name        AS category,
+    b.published_year, 
+    b.description, 
+    b.quantity,
+    b.price,
+    b.row_ver
+FROM Books b
+JOIN Authors    a ON b.author_id   = a.id
+JOIN Categories c ON b.category_id = c.id;
+GO
+
+UPDATE Books SET price = 85000 WHERE id = 1;  -- Mắt Biếc
+UPDATE Books SET price = 79000 WHERE id = 2;  -- Tôi thấy hoa vàng
+UPDATE Books SET price = 65000 WHERE id = 3;  -- Dế Mèn
+UPDATE Books SET price = 72000 WHERE id = 4;  -- Chí Phèo

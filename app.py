@@ -11,7 +11,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 conn_str = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
             "SERVER=127.0.0.1,1433;"
-            "DATABASE=BookDB;"
+            "DATABASE=BOOKDB;"
             "UID=sa;"
             "PWD=123456;"
             "TrustServerCertificate=yes;"
@@ -47,14 +47,14 @@ def register():
     conn=get_db()
     cursor = conn.cursor()
     try:
-        # cursor.execute( #đây là lệnh tạo admin 
-        #     "INSERT INTO Users (username, email, password_hash,role) VALUES (?, ?, ?,?)",
-        #     data['username'], data['email'], hashed,"admin"
-        # )
-        cursor.execute(
-            "INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)",
-            data['username'], data['email'], hashed,
+        cursor.execute( #đây là lệnh tạo admin 
+            "INSERT INTO Users (username, email, password_hash,role) VALUES (?, ?, ?,?)",
+            data['username'], data['email'], hashed,"admin"
         )
+        # cursor.execute(
+        #     "INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)",
+        #     data['username'], data['email'], hashed,
+        # )
         conn.commit()
         return jsonify({"message": "Đăng ký thành công"}), 201
     except Exception as e:
@@ -77,12 +77,13 @@ def get_books():
       ,quantity
     ,category_id
       ,author_id
+    ,price
                     FROM vw_books""") # # biến cursor thực hiện hàm execute để truy vấn select ...
         books = [ # tạo mảng books để khi for i in cursor.fetchall() để lấy dữ liệu r cho vào mảng books -  for r in cursor.fetchall() thực hiện trước
             {
                 "id": r[0], "title": r[1], 
                 "author": r[2], "category": r[3],
-                "published_year": r[4], "description": r[5],"quantity" : r[6],"category_id" : r[7],"author_id" : r[8]
+                "published_year": r[4], "description": r[5],"quantity" : r[6],"category_id" : r[7],"author_id" : r[8],"price" : float(r[9]) if r[9] is not None else 0
             }
             for r in cursor.fetchall() #là method của cursor object trong thư viện pyodbc,Lấy toàn bộ dữ liệu còn lại từ kết quả query
             #r cx ko cần khai báo trước, chỉ cần for và cursor.fetchall()
@@ -104,6 +105,7 @@ def get_book(book_id):
           ,description
           ,quantity
           ,row_ver
+          ,price
             FROM vw_books b
             WHERE b.id = ?
         """, book_id)
@@ -118,7 +120,8 @@ def get_book(book_id):
             "published_year": r[4],
             "description": r[5],
             "quantity": r[6],
-            "row_ver": r[7].hex() if r[7] is not None else None
+            "row_ver": r[7].hex() if r[7] is not None else None,
+            "price": float(r[8]) if r[8] is not None else 0
         })
     finally:
         conn.close()
@@ -133,14 +136,15 @@ def add_book():
         # Chèn trực tiếp vào bảng Books
         cursor.execute("""
             EXEC INSERTBOOOKS @title=? , @author_id =?, @category_id=? , 
-            @published_year =?, @description=? , @quantity=?
+            @published_year =?, @description=? , @quantity=?, @price=?
         """, 
         data['title'], 
         data['author_id'], 
         data['category_id'],
         data.get('published_year'), 
         data.get('description'), 
-        data.get('quantity', 0) # Lấy quantity, nếu không có thì mặc định là 0
+        data.get('quantity', 0), # Lấy quantity, nếu không có thì mặc định là 0
+        data.get('price', 0) # Lấy price, nếu không có thì mặc định là 0
         )
         conn.commit()
         return jsonify({"message": "Thêm sách thành công"}), 201
@@ -164,7 +168,7 @@ def update_book(book_id):
 
         cursor.execute("""
             EXEC upbooks @id=?, @title=?, @author_id=?, @category_id=?, 
-                         @published_year=?, @description=?, @quantity=?, @row_ver=?
+                         @published_year=?, @description=?, @quantity=?, @row_ver=? , @price=?
         """, 
         book_id,
         data['title'], 
@@ -173,7 +177,8 @@ def update_book(book_id):
         data.get('published_year'), 
         data.get('description'), 
         data.get('quantity', 0), 
-        bytes.fromhex(row_ver)
+        bytes.fromhex(row_ver),
+        data.get('price', 0)
         )
         row = cursor.fetchone()
         conn.commit()
@@ -436,6 +441,154 @@ def get_edit_logs():
 
 
 
+# ============================================================
+#  ORDERS — ĐẶT SÁCH
+# ============================================================
+
+@app.route('/api/orders', methods=['POST'])
+def place_order():
+    """Người dùng đặt sách: kiểm tra quantity, trừ kho, lưu đơn + cart."""
+    data = request.json
+    book_id    = data.get('book_id')
+    user_email = data.get('user_email')
+
+    if not book_id or not user_email:
+        return jsonify({"error": "Thiếu thông tin đặt hàng"}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "EXEC place_order @book_id=?, @user_email=?",
+            book_id, user_email
+        )
+        row = cursor.fetchone()
+        conn.commit()
+        result = {}
+        if row:
+            result = {
+                "order_id":   row[0],
+                "book_title": row[1],
+                "price":      float(row[2]) if row[2] is not None else 0,
+                "order_date": row[3].isoformat() if row[3] else None,
+                "status":     row[4]
+            }
+        return jsonify({"message": "Đặt sách thành công!", "order": result}), 201
+    except Exception as e:
+        conn.rollback()
+        msg = str(e)
+        # Trả thông báo thân thiện khi hết sách
+        if "50011" in msg or "hết" in msg.lower():
+            return jsonify({"error": "Sách đã hết, không thể đặt."}), 400
+        return jsonify({"error": msg}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/orders', methods=['GET'])
+def get_orders():
+    """Admin lấy toàn bộ danh sách đơn đặt."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT id, book_title, user_email, order_date, price, status, book_id
+            FROM vw_orders
+            ORDER BY order_date DESC
+        """)
+        orders = [
+            {
+                "id":         r[0],
+                "book_title": r[1],
+                "user_email": r[2],
+                "order_date": r[3].isoformat() if r[3] else None,
+                "price":      float(r[4]) if r[4] is not None else 0,
+                "status":     r[5],
+                "book_id":    r[6]
+            }
+            for r in cursor.fetchall()
+        ]
+        return jsonify(orders)
+    finally:
+        conn.close()
+
+
+@app.route('/api/orders/stats', methods=['GET'])
+def get_order_stats():
+    """Thống kê tổng doanh thu, số đơn, số khách hàng."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("EXEC get_order_stats")
+        r = cursor.fetchone()
+        if not r:
+            return jsonify({"total_orders": 0, "total_revenue": 0, "total_customers": 0})
+        return jsonify({
+            "total_orders":    r[0],
+            "total_revenue":   float(r[1]) if r[1] is not None else 0,
+            "total_customers": r[2]
+        })
+    finally:
+        conn.close()
+
+
+@app.route('/api/orders/<int:order_id>', methods=['PUT'])
+def update_order_status(order_id):
+    """Admin cập nhật trạng thái đơn hàng."""
+    data = request.json
+    new_status = data.get('status')
+    if not new_status:
+        return jsonify({"error": "Thiếu trạng thái"}), 400
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Orders SET status=? WHERE id=?",
+            new_status, order_id
+        )
+        conn.commit()
+        return jsonify({"message": "Cập nhật trạng thái thành công"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+# ============================================================
+#  CART — GIỎ HÀNG
+# ============================================================
+
+@app.route('/api/cart', methods=['GET'])
+def get_cart():
+    """Lấy giỏ hàng của một email cụ thể."""
+    email = request.args.get('email')
+    if not email:
+        return jsonify({"error": "Thiếu email"}), 400
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT id, book_id, name, price, added_at
+            FROM Cart
+            WHERE user_email = ?
+            ORDER BY added_at DESC
+        """, email)
+        items = [
+            {
+                "id":       r[0],
+                "book_id":  r[1],
+                "name":     r[2],
+                "price":    float(r[3]) if r[3] is not None else 0,
+                "added_at": r[4].isoformat() if r[4] else None
+            }
+            for r in cursor.fetchall()
+        ]
+        # Tính tổng tiền giỏ hàng của user
+        total = sum(i['price'] for i in items)
+        return jsonify({"items": items, "total": total})
+    finally:
+        conn.close()
 
 
 
