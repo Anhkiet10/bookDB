@@ -181,6 +181,8 @@ def update_book(book_id):
         data.get('price', 0)
         )
         row = cursor.fetchone()
+        #cursor.execute("WAITFOR DELAY '00:00:30'") # Giả lập độ trễ 30 giây để test đồng bộ hóa
+      
         conn.commit()
         response = {"message": "Cập nhật sách thành công"}
         if row:
@@ -191,6 +193,8 @@ def update_book(book_id):
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+  
 
 @app.route('/api/books/<int:book_id>', methods=['DELETE'])
 def delete_book(book_id):
@@ -485,17 +489,91 @@ def place_order():
         conn.close()
 
 
+# @app.route('/api/orders/safe', methods=['POST'])
+# def place_order_safe():
+#     """
+#     Đặt sách có kiểm tra Non-repeatable Read.
+#     Đọc giá 2 lần trong cùng transaction (REPEATABLE READ).
+#     Nếu giá thay đổi giữa 2 lần đọc → trả lỗi 409 kèm giá mới.
+#     """
+#     data       = request.json
+#     book_id    = data.get('book_id')
+#     user_email = data.get('user_email')
+
+#     if not book_id or not user_email:
+#         return jsonify({"error": "Thiếu thông tin đặt hàng"}), 400
+
+#     conn   = get_db()
+#     cursor = conn.cursor()
+#     try:
+#         cursor.execute(
+#             "EXEC place_order_safe @book_id=?, @user_email=?",
+#             book_id, user_email
+#         )
+#         row = cursor.fetchone()
+#         conn.commit()
+
+#         result = {}
+#         if row:
+#             result = {
+#                 "order_id":      row[0],
+#                 "book_title":    row[1],
+#                 "price":         float(row[2]) if row[2] is not None else 0,
+#                 "order_date":    row[3].isoformat() if row[3] else None,
+#                 "status":        row[4],
+#             }
+#         return jsonify({"message": "Đặt sách thành công!", "order": result}), 201
+
+#     except Exception as e:
+#         conn.rollback()
+#         msg = str(e)
+#         if "50011" in msg or "hết" in msg.lower():
+#             return jsonify({"error": "Sách đã hết, không thể đặt."}), 400
+#         if "50020" in msg or "thay đổi" in msg.lower():
+#             # Giá vừa bị sửa trong lúc xử lý → trả 409 để frontend
+#             # hỏi lại user có muốn đặt với giá mới không
+#             return jsonify({
+#                 "error": "price_changed",
+#                 "message": "Giá sách vừa thay đổi. Vui lòng xác nhận lại."
+#             }), 409
+#         return jsonify({"error": msg}), 500
+#     finally:
+#         conn.close()
+
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
-    """Admin lấy toàn bộ danh sách đơn đặt."""
+    """Lay danh sach don dat.
+    - ?email=  → lọc theo user
+    - ?month=  → lọc theo tháng (1-12)
+    Có thể kết hợp cả hai.
+    """
+    email = request.args.get('email')
+    month = request.args.get('month')
+    try:
+        month_val = int(month) if month else None
+    except ValueError:
+        return jsonify({"error": "Tháng không hợp lệ"}), 400
+
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
+        conditions = []
+        params = []
+        if email:
+            conditions.append("user_email = ?")
+            params.append(email)
+        if month_val:
+            conditions.append("MONTH(order_date) = ?")
+            params.append(month_val)
+
+        where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        sql = f"""
             SELECT id, book_title, user_email, order_date, price, status, book_id
             FROM vw_orders
+            {where_clause}
             ORDER BY order_date DESC
-        """)
+        """
+        cursor.execute(sql, *params)
         orders = [
             {
                 "id":         r[0],
@@ -516,10 +594,16 @@ def get_orders():
 @app.route('/api/orders/stats', methods=['GET'])
 def get_order_stats():
     """Thống kê tổng doanh thu, số đơn, số khách hàng."""
+    month = request.args.get('month')
+
+    try:
+        month_val = int(month) if month else None
+    except ValueError:
+        return jsonify({"error": "Tháng không hợp lệ"}), 400
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("EXEC get_order_stats")
+        cursor.execute("EXEC get_order_stats @month=?", month_val)
         r = cursor.fetchone()
         if not r:
             return jsonify({"total_orders": 0, "total_revenue": 0, "total_customers": 0})
@@ -528,6 +612,8 @@ def get_order_stats():
             "total_revenue":   float(r[1]) if r[1] is not None else 0,
             "total_customers": r[2]
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
@@ -591,7 +677,107 @@ def get_cart():
         conn.close()
 
 
+def _run_realtime_report(proc_name, month_val):
+    """Helper dùng chung cho cả 2 route báo cáo realtime."""
+    conn   = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(f"EXEC {proc_name} @month=?", month_val)
+
+        # Stored proc sinh ra nhiều resultset theo thứ tự:
+        #   1) SELECT @total1 = ...  (lần đọc 1 — row rỗng)
+        #   2) SELECT @total2 = ...  (lần đọc 2 — row rỗng)
+        #   3) INSERT INTO RevenueReports  (nằm ngoài TRANSACTION)
+        #   4) SELECT 5 cột trả về cho app  ← resultset cần lấy
+        #
+        # INSERT nằm ngoài BEGIN/COMMIT nên pyodbc (autocommit=False)
+        # chưa commit nó — phải gọi conn.commit() để lưu vào DB.
+        #
+        # Dùng vòng lặp nextset() để tìm resultset có đúng 5 cột.
+        row = None
+        while True:
+            row = cursor.fetchone()
+            if row is not None and len(row) == 5:
+                break                       # đúng resultset cần
+            if not cursor.nextset():        # không còn resultset nào
+                break
+
+        # Commit để INSERT RevenueReports được lưu vào DB
+        conn.commit()
+
+        if not row:
+            return jsonify({"error": "Không có dữ liệu"}), 404
+
+        # row[0]=total_revenue, row[1]=total_orders, row[2]=total_customers
+        # row[3]=is_consistent, row[4]=phantom_diff
+        return jsonify({
+            "total_revenue":   float(row[0]) if row[0] is not None else 0,
+            "total_orders":    int(row[1])   if row[1] is not None else 0,
+            "total_customers": int(row[2])   if row[2] is not None else 0,
+            "is_consistent":   bool(row[3]),
+            "phantom_diff":    int(row[4])   if row[4] is not None else 0
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/report/realtime', methods=['GET'])
+def report_realtime():
+    """Báo cáo realtime dùng READ COMMITTED — có thể xảy ra Phantom Read."""
+    month = request.args.get('month')
+    try:
+        month_val = int(month) if month else None
+    except ValueError:
+        return jsonify({"error": "Tháng không hợp lệ"}), 400
+    return _run_realtime_report("report_revenue_realtime", month_val)
+
+
+@app.route('/api/report/realtime/safe', methods=['GET'])
+def report_realtime_safe():
+    """Báo cáo realtime dùng SERIALIZABLE — ngăn Phantom Read."""
+    month = request.args.get('month')
+    try:
+        month_val = int(month) if month else None
+    except ValueError:
+        return jsonify({"error": "Tháng không hợp lệ"}), 400
+    return _run_realtime_report("report_revenue_realtime_safe", month_val)
+
+
+@app.route('/api/report/history', methods=['GET'])
+def get_report_history():
+    """Lấy lịch sử các báo cáo đã chạy từ bảng RevenueReports."""
+    limit = request.args.get('limit', 50)
+    try:
+        limit_val = int(limit)
+    except ValueError:
+        limit_val = 50
+    conn   = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("EXEC get_revenue_reports @limit=?", limit_val)
+        rows = cursor.fetchall()
+        result = [
+            {
+                "id":              r[0],
+                "report_time":     r[1].isoformat() if r[1] else None,
+                "report_month":    r[2],
+                "isolation_mode":  r[3],
+                "total_revenue":   float(r[4]) if r[4] is not None else 0,
+                "total_orders":    r[5],
+                "total_customers": r[6],
+                "is_consistent":   bool(r[7])
+            }
+            for r in rows
+        ]
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-
