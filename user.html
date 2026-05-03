@@ -479,6 +479,251 @@
         color: var(--gold);
       }
 
+      /* ===== ORDERS FULLSCREEN ===== */
+      .orders-fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: #f8f7f4;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: fsSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .orders-fullscreen.hidden {
+        display: none !important;
+      }
+      @keyframes fsSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Header — đồng điệu với .books-hero */
+      .orders-fs-header {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f3460 100%
+        );
+        border-bottom: 2px solid var(--gold);
+        padding: 1.6rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .orders-fs-header::before {
+        content: "";
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(212, 175, 55, 0.15) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .orders-fs-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #fff;
+        position: relative;
+        z-index: 1;
+      }
+      .orders-fs-brand i {
+        color: var(--gold);
+        font-size: 1.5rem;
+      }
+      .orders-fs-brand span em {
+        color: var(--gold);
+        font-style: normal;
+      }
+      .orders-fs-subtitle {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 400;
+        margin-left: 0.25rem;
+      }
+      .orders-fs-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+      .btn-fs-refresh {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.85);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all 0.2s;
+      }
+      .btn-fs-refresh:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .btn-fs-home {
+        background: var(--gold);
+        color: #1a1000;
+        border: none;
+        padding: 0.5rem 1.1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: all 0.2s;
+      }
+      .btn-fs-home:hover {
+        background: #e8c46a;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(201, 168, 76, 0.35);
+      }
+
+      /* Stats strip — đồng điệu với .stats-strip */
+      .orders-fs-stats {
+        display: flex;
+        gap: 1.5rem;
+        padding: 0.85rem 2rem;
+        background: rgba(26, 26, 46, 0.06);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+      }
+      .orders-fs-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.85rem;
+        color: #666;
+      }
+      .orders-fs-stat i {
+        color: var(--gold);
+      }
+      .orders-fs-stat strong {
+        color: #1a1a2e;
+      }
+
+      /* Content area */
+      .orders-fs-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+      }
+
+      /* Override table for light background */
+      .orders-fs-content .table-wrap {
+        background: #fff;
+        border: 1px solid #e8e0d0;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+      }
+      .orders-fs-content .data-table thead tr {
+        background: rgba(26, 26, 46, 0.04);
+        border-bottom: 2px solid rgba(201, 168, 76, 0.25);
+      }
+      .orders-fs-content .data-table th {
+        color: #1a1a2e;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 14px 18px;
+      }
+      .orders-fs-content .data-table td {
+        color: #333;
+        border-bottom: 1px solid #f0ebe0;
+        padding: 14px 18px;
+        font-size: 0.9rem;
+      }
+      .orders-fs-content .data-table tbody tr:hover {
+        background: #fdf9f2;
+      }
+      .orders-fs-content .data-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+      .orders-fs-content .loading-row {
+        color: #aaa;
+        text-align: center;
+        padding: 3rem !important;
+      }
+
+      /* Status badges — light theme */
+      .orders-fs-content .status.pending {
+        background: rgba(230, 126, 34, 0.12);
+        color: #c0711a;
+        border: 1px solid rgba(230, 126, 34, 0.3);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .orders-fs-content .status.done {
+        background: rgba(39, 174, 96, 0.12);
+        color: #1e8449;
+        border: 1px solid rgba(39, 174, 96, 0.3);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .orders-fs-content .status.cancel {
+        background: rgba(192, 57, 43, 0.1);
+        color: #c0392b;
+        border: 1px solid rgba(192, 57, 43, 0.25);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      /* Status badges dùng class mới */
+      .status-badge {
+        display: inline-block;
+        padding: 4px 11px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .status-pending {
+        background: rgba(230, 126, 34, 0.12);
+        color: #c0711a;
+        border: 1px solid rgba(230, 126, 34, 0.3);
+      }
+      .status-done {
+        background: rgba(39, 174, 96, 0.12);
+        color: #1e8449;
+        border: 1px solid rgba(39, 174, 96, 0.3);
+      }
+      .status-cancel {
+        background: rgba(192, 57, 43, 0.1);
+        color: #c0392b;
+        border: 1px solid rgba(192, 57, 43, 0.25);
+      }
+
       /* Responsive */
       @media (max-width: 600px) {
         .hero-top {
@@ -646,6 +891,16 @@
           <button class="btn-order" id="btnOrderNow">
             <i class="fas fa-cart-shopping"></i> Đặt ngay
           </button>
+          <button
+            class="btn-order"
+            id="btnReadNow"
+            style="
+              background: linear-gradient(135deg, #3498db, #2980b9);
+              color: white;
+            "
+          >
+            <i class="fas fa-book-reader"></i> Đọc ngay
+          </button>
           <button class="btn btn-outline" data-close="modalDetail">Đóng</button>
         </div>
       </div>
@@ -726,41 +981,64 @@
       </div>
     </div>
 
-    <!-- ===== TAB: ORDERS ===== -->
-    <section id="tab-orders" class="tab-section hidden">
-      <div class="section-header">
-        <div>
-          <button class="btn btn-gold" id="btnRefreshhome">
-            <i class="fas fa-home"></i> Trang chủ
+    <!-- ===== FULLSCREEN: ORDERS ===== -->
+    <div id="tab-orders" class="orders-fullscreen hidden">
+      <!-- Header — đồng điệu với books-hero -->
+      <div class="orders-fs-header">
+        <div class="orders-fs-brand">
+          <i class="fas fa-book-open"></i>
+          <span
+            >Book<em>DB</em>
+            <span class="orders-fs-subtitle">— Đơn hàng của tôi</span></span
+          >
+        </div>
+        <div class="orders-fs-actions">
+          <button class="btn-fs-refresh" id="btnRefreshOrders">
+            <i class="fas fa-rotate-right"></i> Làm mới
+          </button>
+          <button class="btn-fs-home" id="btnRefreshhome">
+            <i class="fas fa-arrow-left"></i> Quay lại
           </button>
         </div>
-        <button class="btn btn-gold" id="btnRefreshOrders">
-          <i class="fas fa-rotate-right"></i> Làm mới
-        </button>
       </div>
 
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Tên sách</th>
-              <th>Ngày đặt</th>
-              <th>Giá</th>
-              <th>Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody id="ordersBody">
-            <tr>
-              <td colspan="5" class="loading-row">
-                <i class="fas fa-spinner fa-spin"></i> Đang tải...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Stats strip -->
+      <div class="orders-fs-stats">
+        <div class="orders-fs-stat">
+          <i class="fas fa-shopping-bag"></i>
+          <span>Lịch sử đặt sách của bạn</span>
+        </div>
+        <div class="orders-fs-stat">
+          <i class="fas fa-circle-info"></i>
+          <span>Đến thư viện để nhận sách sau khi đặt</span>
+        </div>
       </div>
-    </section>
 
-    <script src="user.js"></script>
+      <!-- Content -->
+      <div class="orders-fs-content">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Tên sách</th>
+                <th>Ngày đặt</th>
+                <th>Giá</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody">
+              <tr>
+                <td colspan="5" class="loading-row">
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="user_test.js"></script>
   </body>
 </html>

@@ -107,6 +107,12 @@
         <a href="#" class="nav-item" data-tab="edit-logs">
           <i class="fas fa-edit"></i> Nhật ký chỉnh sửa
         </a>
+        <a href="#" class="nav-item" data-tab="report">
+          <i class="fas fa-chart-bar"></i> Báo cáo doanh thu
+        </a>
+        <a href="#" class="nav-item" data-tab="report-history">
+          <i class="fas fa-file-chart-column"></i> Lịch sử báo cáo
+        </a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -264,6 +270,43 @@
 
       <!-- ===== TAB: ORDERS ===== -->
       <section id="tab-orders" class="tab-section hidden">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+          "
+        >
+          <label for="filterMonth" style="font-weight: 600; color: var(--gold)">
+            <i class="fas fa-calendar-alt"></i> Lọc theo tháng:
+          </label>
+          <select
+            id="filterMonth"
+            style="
+              padding: 6px 12px;
+              border-radius: 8px;
+              border: 1px solid var(--gold);
+              background: var(--card);
+              color: var(--text);
+              cursor: pointer;
+            "
+          >
+            <option value="">Tất cả tháng</option>
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+          </select>
+        </div>
         <div class="section-header">
           <div>
             <h1 class="section-title">
@@ -280,12 +323,13 @@
         <div class="revenue-box">
           <div class="revenue-icon"><i class="fas fa-sack-dollar"></i></div>
           <div>
-            <div class="revenue-label">Tổng doanh thu</div>
+            <div class="revenue-label">Tổng doanh thu theo tháng</div>
             <div class="revenue-amount" id="totalRevenue">—</div>
             <div class="revenue-sub">
               <span id="totalOrders">—</span> đơn &nbsp;·&nbsp;
               <span id="totalCustomers">—</span> khách hàng
             </div>
+            <!-- Thêm vào dashboard.html, trong phần stats -->
           </div>
         </div>
 
@@ -338,6 +382,191 @@
               <tr>
                 <td colspan="5" class="loading-row">
                   <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <!-- ===== TAB: BÁO CÁO DOANH THU ===== -->
+      <section id="tab-report" class="tab-section hidden">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">
+              <i class="fas fa-chart-bar" style="color: var(--gold)"></i>
+              Báo Cáo Doanh Thu
+            </h1>
+            <p class="section-sub">
+              Demo Phantom Read — chạy báo cáo 8 giây và đặt sách trong lúc chờ
+            </p>
+          </div>
+        </div>
+
+        <!-- Bộ điều khiển chạy báo cáo -->
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid rgba(201, 168, 76, 0.2);
+          "
+        >
+          <label style="font-weight: 600; color: var(--gold)"
+            ><i class="fas fa-calendar-alt"></i> Tháng:</label
+          >
+          <select
+            id="reportMonth"
+            style="
+              padding: 7px 14px;
+              border-radius: 8px;
+              border: 1px solid var(--gold);
+              background: var(--card);
+              color: var(--text);
+              cursor: pointer;
+            "
+          >
+            <option value="">Tất cả tháng</option>
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+          </select>
+          <button class="btn btn-outline" id="btnRunReport">
+            <i class="fas fa-play"></i> READ COMMITTED
+            <span style="font-size: 0.75rem; opacity: 0.7">(có phantom)</span>
+          </button>
+          <button class="btn btn-gold" id="btnRunReportSafe">
+            <i class="fas fa-shield-halved"></i> SERIALIZABLE
+            <span style="font-size: 0.75rem; opacity: 0.8">(an toàn)</span>
+          </button>
+        </div>
+
+        <!-- Trạng thái đang chạy -->
+        <div
+          id="reportRunning"
+          style="
+            display: none;
+            padding: 22px;
+            text-align: center;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px dashed rgba(201, 168, 76, 0.4);
+            margin-bottom: 20px;
+          "
+        >
+          <i
+            class="fas fa-spinner fa-spin"
+            style="font-size: 1.8rem; color: var(--gold)"
+          ></i>
+          <p style="margin-top: 10px; font-weight: 600" id="reportRunningMode">
+            Đang chạy báo cáo...
+          </p>
+          <p style="font-size: 0.82rem; color: var(--muted); margin-top: 4px">
+            💡 Hãy mở tab user trên trình duyệt khác và
+            <strong>đặt sách ngay bây giờ</strong> để tạo phantom!
+          </p>
+        </div>
+
+        <!-- Kết quả báo cáo vừa chạy -->
+        <div
+          id="reportLastResult"
+          style="
+            display: none;
+            padding: 20px;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid rgba(201, 168, 76, 0.25);
+            margin-bottom: 24px;
+          "
+        >
+          <div
+            id="reportConsistencyBadge"
+            style="
+              font-size: 1.05rem;
+              font-weight: 700;
+              margin-bottom: 14px;
+              padding: 10px 14px;
+              border-radius: 8px;
+              display: inline-block;
+            "
+          ></div>
+          <table class="data-table" style="margin: 0">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Lần đọc 1 (T₀)</th>
+                <th>Lần đọc 2 (T₀+8s)</th>
+                <th>Chênh lệch</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Doanh thu</strong></td>
+                <td id="resRev1">—</td>
+                <td id="resRev2">—</td>
+                <td id="resDiffRev">—</td>
+              </tr>
+              <tr>
+                <td><strong>Số đơn</strong></td>
+                <td id="resOrd1">—</td>
+                <td id="resOrd2">—</td>
+                <td id="resDiffOrd">—</td>
+              </tr>
+              <tr>
+                <td><strong>Khách hàng</strong></td>
+                <td id="resCust">—</td>
+                <td colspan="2"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Lịch sử báo cáo -->
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+          "
+        >
+          <h3 style="color: var(--gold); margin: 0">
+            <i class="fas fa-clock-rotate-left"></i> Lịch sử báo cáo đã lưu
+          </h3>
+          <button class="btn btn-outline btn-sm" id="btnRefreshHistory">
+            <i class="fas fa-rotate-right"></i> Làm mới
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Thời gian</th>
+                <th>Tháng</th>
+                <th>Isolation</th>
+                <th>Doanh thu</th>
+                <th>Đơn / Khách</th>
+                <th>Kết quả</th>
+              </tr>
+            </thead>
+            <tbody id="reportHistoryBody">
+              <tr>
+                <td colspan="7" class="loading-row">
+                  Nhấn "Làm mới" để tải lịch sử
                 </td>
               </tr>
             </tbody>

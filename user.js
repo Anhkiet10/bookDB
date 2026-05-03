@@ -103,18 +103,25 @@ async function loadCategories() {
 }
 
 async function loadOrders() {
+  const tbody = document.getElementById("ordersBody");
+  tbody.innerHTML = `<tr><td colspan="5" style="text-align:center">
+    <i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>`;
   try {
-    const data = await apiFetch("/orders"); // API của anh
+    const url = API + "/orders?email=" + encodeURIComponent(session.email);
+    const res = await fetch(url, {
+      headers: { "content-type": "application/json" },
+    });
+    const data = await res.json();
 
-    renderOrders(data);
+    if (!res.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">
+        Lỗi server: ${data.error || res.status}</td></tr>`;
+      return;
+    }
+    renderOrders(Array.isArray(data) ? data : []);
   } catch (err) {
-    document.getElementById("ordersBody").innerHTML = `
-      <tr>
-        <td colspan="5" style="text-align:center;color:red;">
-          Lỗi tải đơn hàng: ${err.message}
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">
+      Lỗi kết nối: ${err.message}</td></tr>`;
   }
 }
 
@@ -138,11 +145,11 @@ function renderOrders(orders) {
       <tr>
         <td>${i + 1}</td>
         <td>${o.book_title || "—"}</td>
-        <td>${formatDate(o.created_at)}</td>
+        <td>${formatDate(o.order_date)}</td>
         <td>${formatPrice(o.price)}</td>
         <td>
-          <span class="status ${o.status}">
-            ${getStatusText(o.status)}
+          <span class="status-badge ${getStatusClass(o.status)}">
+            ${o.status || "—"}
           </span>
         </td>
       </tr>
@@ -162,17 +169,13 @@ function formatPrice(p) {
   return Number(p).toLocaleString("vi-VN") + " đ";
 }
 
-function getStatusText(status) {
-  switch (status) {
-    case "pending":
-      return "Chờ xử lý";
-    case "done":
-      return "Hoàn thành";
-    case "cancel":
-      return "Đã hủy";
-    default:
-      return status;
-  }
+function getStatusClass(status) {
+  // DB lưu tiếng Việt: "Chờ xử lý", "Đã xử lý", "Đã hủy"
+  if (!status) return "";
+  if (status.includes("hủy") || status === "cancel") return "status-cancel";
+  if (status.includes("xử lý") && status.includes("Đã")) return "status-done";
+  if (status === "done") return "status-done";
+  return "status-pending"; // Chờ xử lý / pending
 }
 
 document
@@ -297,6 +300,28 @@ function openDetail(id) {
     descWrap.style.display = "none";
   }
 
+  const readBtn = document.getElementById("btnReadNow");
+  if (readBtn) {
+    readBtn.onclick = async () => {
+      // 1. Ghi lịch sử vào DB qua trigger
+      try {
+        await apiFetch("/reading-log", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: session.id, // cần lưu id vào session khi login
+            book_id: book.id,
+          }),
+        });
+      } catch (_) {
+        // Không chặn việc đọc nếu log lỗi
+      }
+
+      // 2. Chuyển sang trang đọc
+      const url = `reader.html?id=${book.id}&title=${encodeURIComponent(book.title)}`;
+      window.location.href = url;
+    };
+  }
+
   openModal("modalDetail");
 }
 
@@ -393,14 +418,22 @@ const orderBtn = document.getElementById("orderBtn");
 const tabOrders = document.getElementById("tab-orders");
 
 orderBtn.addEventListener("click", () => {
-  // Ẩn danh sách sách
-  document.querySelector(".books-container").style.display = "none";
-
-  // Hiện tab đơn hàng
+  // Hiện fullscreen giỏ hàng
   tabOrders.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
 
   // Load dữ liệu đơn hàng
   loadOrders();
+});
+
+function closeOrdersFullscreen() {
+  tabOrders.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+// Nút Trang chủ — đóng giỏ hàng, quay về giao diện sách
+document.getElementById("btnRefreshhome").addEventListener("click", () => {
+  closeOrdersFullscreen();
 });
 
 // ===== CLOSE MODALS =====
